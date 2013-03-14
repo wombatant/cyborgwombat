@@ -6,6 +6,7 @@ import (
 	"github.com/gtalent/lex"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 type Out struct {
@@ -21,13 +22,16 @@ func NewCOut() Out {
 
 using namespace std;
 `
-	out.types = []string{}
+	out.types = []string{"int", "uint", "byte", "uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64", "bool", "float32", "float64"}
 	return out
 }
 
-
-func (me *Out) addVar(v string, t string) {
-	me.txt += "\t" + t + " " + v + ";\n"
+func (me *Out) addVar(v string, t string, index int) {
+	array := ""
+	for i := 0; i < index; i++ {
+		array += "[]"
+	}
+	me.txt += "\t" + t + " " + strings.ToLower(v) + array + ";\n"
 }
 
 func (me *Out) addClass(v string) {
@@ -55,7 +59,7 @@ func getTokens(path string) []lex.Token {
 	var tokens []lex.Token
 
 	input := string(ss)
-	symbols := []string{}
+	symbols := []string{"[", "]"}
 	keywords := []string{}
 	stringTypes := []lex.Pair{}
 	commentTypes := []lex.Pair{}
@@ -80,16 +84,34 @@ type Parser struct {
 	out Out
 }
 
-func (me *Parser) processVariable(tokens []lex.Token) error {
+func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
+	size := 3 // should be 1 less than the actual number parsed
+
 	if len(tokens) < 4 {
-		return errors.New("Incomplete variable")
+		return 0, errors.New("Incomplete variable")
 	}
-	me.out.addVar(tokens[1].String(), tokens[3].String())
-	return nil
+
+	variable := tokens[1].String()
+	index := 0
+	tokens = tokens[3:]
+	for tokens[0].String() == "[" {
+		if tokens[1].String() != "]" {
+			return 0, errors.New("] expected")
+		}
+		size += 2
+		tokens = tokens[2:]
+		index++
+	}
+	t := tokens[0].String()
+	if len(tokens) < 1 {
+		return 0, errors.New("Incomplete variable")
+	}
+	me.out.addVar(variable, t, index)
+	return size, nil
 }
 
 func (me *Parser) processObject(tokens []lex.Token) (Out, error) {
-	line := 0
+	line := 1
 	var err error
 	prev := ""
 	for i := 0; i < len(tokens); i++ {
@@ -102,8 +124,9 @@ func (me *Parser) processObject(tokens []lex.Token) (Out, error) {
 					me.out.closeClass()
 				}
 			} else if t.String() == "\t" {
-				err = me.processVariable(tokens[i:])
-				i += 3
+				var size int
+				size, err = me.processVariable(tokens[i:])
+				i += size
 			}
 		case lex.Identifier:
 			me.out.addClass(t.String())
@@ -112,7 +135,7 @@ func (me *Parser) processObject(tokens []lex.Token) (Out, error) {
 		}
 		prev = t.String()
 		if err != nil {
-			println(fmt.Sprintf("Error: World ended on line %d.\n", line))
+			println(fmt.Sprintf("Error: world ended on line %d\n", line))
 			break
 		}
 	}

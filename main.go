@@ -17,55 +17,22 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/gtalent/lex"
 	"io/ioutil"
 	"os"
-	"strings"
 )
 
-type Out struct {
-	txt   string
-	types []string
-}
-
-func NewCOut() Out {
-	var out Out
-	out.txt = `//Generated Code
-#include <string>
-#include "types.h"
-
-using namespace std;
-`
-	out.types = []string{"int", "uint", "byte", "uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64", "bool", "float32", "float64"}
-	return out
-}
-
-func (me *Out) addVar(v string, t string, index int) {
-	array := ""
-	for i := 0; i < index; i++ {
-		array += "[]"
-	}
-	me.txt += "\t" + t + " " + strings.ToLower(v) + array + ";\n"
-}
-
-func (me *Out) addClass(v string) {
-	me.txt += "\nclass " + v + " {\n"
-}
-
-func (me *Out) closeClass() {
-	me.txt += "};\n"
-}
-
-func (me *Out) endsWithClose() bool {
-	return (me.txt)[len(me.txt)-2:] != "};"
-}
-
 func main() {
-	getTokens("image.txt")
+	flag.Parse()
+	args := flag.Args()
+	for _, s := range args {
+		parseFile(s)
+	}
 }
 
-func getTokens(path string) []lex.Token {
+func parseFile(path string) {
 	ss, err := ioutil.ReadFile(path)
 	if err != nil {
 		println("Could not find or open sconscript")
@@ -85,14 +52,14 @@ func getTokens(path string) []lex.Token {
 		t.TokType, t.TokValue, point = l.NextToken(input, point)
 		tokens = append(tokens, t)
 	}
+
 	var p Parser
 	p.out = NewCOut()
 	out, err := p.processObject(tokens)
 	if err != nil {
-		return nil
+		return
 	}
-	fmt.Print(out.txt)
-	return tokens
+	fmt.Print(out.hpp)
 }
 
 type Parser struct {

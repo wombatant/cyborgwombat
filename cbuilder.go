@@ -54,18 +54,31 @@ func (me *Out) addVar(v string, t string, index int) {
 	if len(v) > 0 && v[0] < 91 {
 		v = string(v[0]+32) + v[1:]
 	}
-	me.hpp += "\t" + me.buildVar(v, t, index)
+	me.hpp += "\t\t" + me.buildVar(v, t, index)
 	me.reader += me.buildReader(v, t, index, 0)
 }
 
 func (me *Out) addClass(v string) {
 	me.hpp += "\nclass " + v + " {\n"
-	me.hpp += "\tvoid read(string json);\n"
-	me.hpp += "\tstring write();\n"
+	me.hpp += "\n\tpublic:\n"
+	me.reader += "void " + v + "::load(json_object in*) {\n"
+	me.writer += "string " + v + "::read() {\n"
 }
 
 func (me *Out) closeClass() {
-	me.hpp += "};\n"
+	me.hpp += "\n\t\tvoid load(json_object in*);\n"
+	me.hpp += "\t\tstring write();\n"
+	me.hpp += "};\n\n"
+	me.reader += "}\n\n"
+	me.writer += "}\n\n"
+}
+
+func (me *Out) header() string {
+	return me.hpp
+}
+
+func (me *Out) body(headername string) string {
+	return `#include "` + headername + "\"\n\n" + me.reader + me.writer[:len(me.writer)-1]
 }
 
 func (me *Out) endsWithClose() bool {
@@ -81,7 +94,6 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 	}
 	reader := ""
 	//var jtype string
-	var jfunc string
 	if index > 0 {
 		if tabs != 2 {
 			reader += tab[1:] + me.buildVar(out, t, index)
@@ -103,19 +115,16 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 	} else {
 		switch t { //type
 		case "float", "float32", "float64", "double":
-			t = "double"
-			jfunc = "json_object_get_double(obj);"
+			reader += tab[1:] + "this." + v + " = json_object_get_double(obj);\n"
 		case "int":
-			t = "int"
-			jfunc = "json_object_get_int(obj);"
+			reader += tab[1:] + "this." + v + " = json_object_get_int(obj);\n"
 		case "bool":
-			t = "bool"
-			jfunc = "json_object_get_bool(obj);"
+			reader += tab[1:] + "this." + v + " = json_object_get_bool(obj);\n"
 		case "string":
-			t = "string"
-			jfunc = "json_object_get_string(obj);"
+			reader += tab[1:] + "this." + v + " = json_object_get_string(obj);\n"
+		default:
+			reader += tab[1:] + "this." + v + ".load(obj);\n"
 		}
-		reader += tab[1:] + t + " " + out + " = " + jfunc + "\n"
 	}
 	return reader
 }

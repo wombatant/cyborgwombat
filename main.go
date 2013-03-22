@@ -59,7 +59,8 @@ func parseFile(path string) {
 	if err != nil {
 		return
 	}
-	fmt.Print(out.reader)
+	fmt.Print(out.header())
+	fmt.Print(out.body("Narf.hpp"))
 }
 
 type Parser struct {

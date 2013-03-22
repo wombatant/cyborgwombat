@@ -83,7 +83,7 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 	//var jtype string
 	var jfunc string
 	if index > 0 {
-		if tabs > 2 {
+		if tabs != 2 {
 			reader += tab[1:] + me.buildVar(out, t, index)
 		}
 		reader += tab[1:] + "{\n"
@@ -103,16 +103,16 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 	} else {
 		switch t { //type
 		case "float", "float32", "float64", "double":
-			//jtype = "double"
+			t = "double"
 			jfunc = "json_object_get_double(obj);"
 		case "int":
-			//jtype = "int"
+			t = "int"
 			jfunc = "json_object_get_int(obj);"
 		case "bool":
-			//jtype = "bool"
+			t = "bool"
 			jfunc = "json_object_get_bool(obj);"
 		case "string":
-			//jtype = "string"
+			t = "string"
 			jfunc = "json_object_get_string(obj);"
 		}
 		reader += tab[1:] + t + " " + out + " = " + jfunc + "\n"

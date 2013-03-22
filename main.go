@@ -59,7 +59,7 @@ func parseFile(path string) {
 	if err != nil {
 		return
 	}
-	fmt.Print(out.hpp)
+	fmt.Print(out.reader)
 }
 
 type Parser struct {

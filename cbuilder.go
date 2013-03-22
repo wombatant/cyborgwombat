@@ -16,7 +16,7 @@
 package main
 
 import (
-	"strings"
+	"strconv"
 )
 
 type Out struct {
@@ -35,23 +35,27 @@ func NewCOut() Out {
 using namespace std::string;
 using namespace std::vector;
 `
-	out.types = []string{"int", "uint", "byte", "uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64", "bool", "float32", "float64"}
+	out.types = []string{"int", "bool", "float", "float32", "float64", "double"}
 	return out
 }
 
 func (me *Out) buildVar(v string, t string, index int) string {
 	array := ""
-	out := "\t"
+	out := ""
 	for i := 0; i < index; i++ {
 		out += "vector<"
 		array += ">"
 	}
-	out += t + array + " " + strings.ToLower(v) + ";\n"
+	out += t + array + " " + v + ";\n"
 	return out
 }
 
 func (me *Out) addVar(v string, t string, index int) {
-	me.hpp += me.buildVar(v, t, index)
+	if len(v) > 0 && v[0] < 91 {
+		v = string(v[0]+32) + v[1:]
+	}
+	me.hpp += "\t" + me.buildVar(v, t, index)
+	me.reader += me.buildReader(v, t, index, 0)
 }
 
 func (me *Out) addClass(v string) {
@@ -68,34 +72,51 @@ func (me *Out) endsWithClose() bool {
 	return (me.hpp)[len(me.hpp)-3:] != "};\n"
 }
 
-func (me *Out) addReader(v string, t string, index int, tabs int) string {
-	i := func(is int) string {
-		out := ""
-		for i := 0; i < is; i++ {
-			out += "i"
-		}
-		return out
-	}
+func (me *Out) buildReader(v string, t string, index int, tabs int) string {
+	tabs += 2
+	out := "out" + strconv.Itoa(index)
 	tab := ""
 	for n := 0; n < tabs; n++ {
 		tab += "\t"
 	}
-	reader := "\t" + t + " out;\n{"
+	reader := ""
+	//var jtype string
+	var jfunc string
 	if index > 0 {
-		reader = "\tjson_object *array;\n"
-		reader += tab + "int size = json_object_array_length(array);\n"
-		reader += tab + me.buildVar("list", t, index)
-		reader += tab + "for (int " + i(index) + " = 0; " + i(index) + " < size; " + i(index) + "++) {"
-		reader += tab + "\t" + me.buildVar("var", t, index-1)
-		reader += tab + "\t" + me.addReader(v, t, index-1, tabs+1)
-		reader += tab + "\t" + "list.push_back(out);\n"
-		reader += tab + "}"
+		if tabs > 2 {
+			reader += tab[1:] + me.buildVar(out, t, index)
+		}
+		reader += tab[1:] + "{\n"
+		reader += tab + "int size = json_object_array_length(obj);\n"
+		if tabs == 2 {
+			reader += tab + me.buildVar(out, t, index)
+		}
+		reader += tab + "for (int i = 0; i < size; i++) {\n"
+		reader += tab + "\tjson_object obj* = json_object_array_get_idx(obj, i);\n"
+		reader += me.buildReader(v, t, index-1, tabs)
+		reader += tab + "\t" + out + ".push_back(out" + strconv.Itoa(index-1) + ");\n"
+		reader += tab + "}\n"
+		if tabs == 2 {
+			reader += tab + "this." + v + " = " + out + ";\n"
+		}
+		reader += tab[1:] + "}\n"
 	} else {
 		switch t { //type
+		case "float", "float32", "float64", "double":
+			//jtype = "double"
+			jfunc = "json_object_get_double(obj);"
 		case "int":
+			//jtype = "int"
+			jfunc = "json_object_get_int(obj);"
+		case "bool":
+			//jtype = "bool"
+			jfunc = "json_object_get_bool(obj);"
+		case "string":
+			//jtype = "string"
+			jfunc = "json_object_get_string(obj);"
 		}
+		reader += tab[1:] + t + " " + out + " = " + jfunc + "\n"
 	}
-	reader += "}\n"
 	return reader
 }
 

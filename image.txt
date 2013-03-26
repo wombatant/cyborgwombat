@@ -3,5 +3,5 @@ Size
 	Y int
 
 Image
-	Size Size
+	Size [][]int
 	Path string

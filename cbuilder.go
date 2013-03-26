@@ -106,24 +106,25 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 		reader += tab + "for (int i = 0; i < size; i++) {\n"
 		reader += tab + "\tjson_object obj* = json_object_array_get_idx(obj, i);\n"
 		reader += me.buildReader(v, t, index-1, tabs)
-		reader += tab + "\t" + out + ".push_back(out" + strconv.Itoa(index-1) + ");\n"
-		reader += tab + "}\n"
 		if tabs == 2 {
-			reader += tab + "this." + v + " = " + out + ";\n"
+			reader += tab + "\tthis->" + v + ".push_back(out" + strconv.Itoa(index-1) + ");\n"
+		} else {
+			reader += tab + "\t" + out + ".push_back(out" + strconv.Itoa(index-1) + ");\n"
 		}
+		reader += tab + "}\n"
 		reader += tab[1:] + "}\n"
 	} else {
 		switch t { //type
 		case "float", "float32", "float64", "double":
-			reader += tab[1:] + "this." + v + " = json_object_get_double(obj);\n"
+			reader += tab[1:] + "this->" + v + " = json_object_get_double(obj);\n"
 		case "int":
-			reader += tab[1:] + "this." + v + " = json_object_get_int(obj);\n"
+			reader += tab[1:] + "this->" + v + " = json_object_get_int(obj);\n"
 		case "bool":
-			reader += tab[1:] + "this." + v + " = json_object_get_bool(obj);\n"
+			reader += tab[1:] + "this->" + v + " = json_object_get_bool(obj);\n"
 		case "string":
-			reader += tab[1:] + "this." + v + " = json_object_get_string(obj);\n"
+			reader += tab[1:] + "this->" + v + " = json_object_get_string(obj);\n"
 		default:
-			reader += tab[1:] + "this." + v + ".load(obj);\n"
+			reader += tab[1:] + "this->" + v + ".load(obj);\n"
 		}
 	}
 	return reader

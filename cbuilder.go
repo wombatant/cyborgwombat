@@ -114,17 +114,34 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 		reader += tab + "}\n"
 		reader += tab[1:] + "}\n"
 	} else {
+		primitive := false
+		i := 0
+		if tabs == 2 {
+			reader += tab[1:] + "{\n"
+		} else {
+			i += 1
+		}
 		switch t { //type
 		case "float", "float32", "float64", "double":
-			reader += tab[1:] + "this->" + v + " = json_object_get_double(obj);\n"
+			primitive = true
+			reader += tab[i:] + "double out0 = json_object_get_double(obj);\n"
 		case "int":
-			reader += tab[1:] + "this->" + v + " = json_object_get_int(obj);\n"
+			primitive = true
+			reader += tab[i:] + "int out0 = json_object_get_int(obj);\n"
 		case "bool":
-			reader += tab[1:] + "this->" + v + " = json_object_get_bool(obj);\n"
+			primitive = true
+			reader += tab[i:] + "bool out0 = json_object_get_bool(obj);\n"
 		case "string":
-			reader += tab[1:] + "this->" + v + " = json_object_get_string(obj);\n"
+			primitive = true
+			reader += tab[i:] + "string out0 = json_object_get_string(obj);\n"
 		default:
-			reader += tab[1:] + "this->" + v + ".load(obj);\n"
+			reader += tab + "this->" + v + ".load(obj);\n"
+		}
+		if tabs == 2 && primitive {
+			reader += tab + "this->" + v + " = out0;\n"
+		}
+		if tabs == 2 {
+			reader += tab[1:] + "}\n"
 		}
 	}
 	return reader

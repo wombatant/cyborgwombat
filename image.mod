@@ -1,7 +1,7 @@
 Size
-	X int
+	X [][][][]int
 	Y int
 
 Image
-	Size [][]int
+	Size Size
 	Path string

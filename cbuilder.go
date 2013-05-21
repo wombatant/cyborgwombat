@@ -30,7 +30,6 @@ func NewCOut() Out {
 	var out Out
 	out.hpp = `//Generated Code
 #include <string>
-#include "types.h"
 
 using namespace std::string;
 using namespace std::vector;
@@ -61,12 +60,12 @@ func (me *Out) addVar(v string, t string, index int) {
 func (me *Out) addClass(v string) {
 	me.hpp += "\nclass " + v + " {\n"
 	me.hpp += "\n\tpublic:\n"
-	me.reader += "void " + v + "::load(json_object in*) {\n"
+	me.reader += "void " + v + "::load(json_object *obj) {\n"
 	me.writer += "string " + v + "::read() {\n"
 }
 
 func (me *Out) closeClass() {
-	me.hpp += "\n\t\tvoid load(json_object in*);\n"
+	me.hpp += "\n\t\tvoid load(json_object *obj);\n"
 	me.hpp += "\t\tstring write();\n"
 	me.hpp += "};\n\n"
 	me.reader += "}\n\n"
@@ -78,7 +77,11 @@ func (me *Out) header() string {
 }
 
 func (me *Out) body(headername string) string {
-	return `#include "` + headername + "\"\n\n" + me.reader + me.writer[:len(me.writer)-1]
+	include := ""
+	if headername != "" {
+		include = `#include "` + headername + "\"\n\n"
+	}
+	return include + me.reader + me.writer[:len(me.writer)-1]
 }
 
 func (me *Out) endsWithClose() bool {
@@ -104,7 +107,7 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 			reader += tab + me.buildVar(out, t, index)
 		}
 		reader += tab + "for (int i = 0; i < size; i++) {\n"
-		reader += tab + "\tjson_object obj* = json_object_array_get_idx(obj, i);\n"
+		reader += tab + "\tjson_object *obj = json_object_array_get_idx(obj, i);\n"
 		reader += me.buildReader(v, t, index-1, tabs)
 		if tabs == 2 {
 			reader += tab + "\tthis->" + v + ".push_back(out" + strconv.Itoa(index-1) + ");\n"
@@ -114,7 +117,7 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 		reader += tab + "}\n"
 		reader += tab[1:] + "}\n"
 	} else {
-		primitive := false
+		primitive := true
 		i := 0
 		if tabs == 2 {
 			reader += tab[1:] + "{\n"
@@ -123,18 +126,15 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 		}
 		switch t { //type
 		case "float", "float32", "float64", "double":
-			primitive = true
 			reader += tab[i:] + "double out0 = json_object_get_double(obj);\n"
 		case "int":
-			primitive = true
 			reader += tab[i:] + "int out0 = json_object_get_int(obj);\n"
 		case "bool":
-			primitive = true
 			reader += tab[i:] + "bool out0 = json_object_get_bool(obj);\n"
 		case "string":
-			primitive = true
 			reader += tab[i:] + "string out0 = json_object_get_string(obj);\n"
 		default:
+			primitive = false
 			reader += tab + "this->" + v + ".load(obj);\n"
 		}
 		if tabs == 2 && primitive {

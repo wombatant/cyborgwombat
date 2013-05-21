@@ -25,17 +25,16 @@ import (
 )
 
 func main() {
+	out := flag.String("o", "stdout", "File or file set(languages with header files) to write the output to")
+	in := flag.String("i", "", "The model file to generate JSON-C code for")
 	flag.Parse()
-	args := flag.Args()
-	for _, s := range args {
-		parseFile(s)
-	}
+	parseFile(*in, *out)
 }
 
-func parseFile(path string) {
+func parseFile(path, outFile string) {
 	ss, err := ioutil.ReadFile(path)
 	if err != nil {
-		println("Could not find or open sconscript")
+		println("Could not find or open specified model")
 		os.Exit(0)
 	}
 	var tokens []lex.Token
@@ -58,9 +57,15 @@ func parseFile(path string) {
 	out, err := p.processObject(tokens)
 	if err != nil {
 		return
+	} else {
+		if outFile == "stdout" {
+			fmt.Print(out.header())
+			fmt.Print(out.body(""))
+		} else {
+			ioutil.WriteFile(outFile+".hpp", []byte(out.header()), 0644)
+			ioutil.WriteFile(outFile+".cpp", []byte(out.body(outFile+".hpp")), 0644)
+		}
 	}
-	fmt.Print(out.header())
-	fmt.Print(out.body("Narf.hpp"))
 }
 
 type Parser struct {

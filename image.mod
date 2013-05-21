@@ -1,5 +1,5 @@
 Size
-	X [][][][]int
+	X [][][][]string
 	Y int
 
 Image

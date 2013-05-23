@@ -29,10 +29,13 @@ type Out struct {
 func NewCOut() Out {
 	var out Out
 	out.hpp = `//Generated Code
-#include <string>
 
-using namespace std::string;
-using namespace std::vector;
+#include <string>
+#include <vector>
+#include <json/json.h>
+
+using std::string;
+using std::vector;
 `
 	out.types = []string{"int", "bool", "float", "float32", "float64", "double"}
 	return out
@@ -43,7 +46,7 @@ func (me *Out) buildVar(v string, t string, index int) string {
 	out := ""
 	for i := 0; i < index; i++ {
 		out += "vector<"
-		array += ">"
+		array += " >"
 	}
 	out += t + array + " " + v + ";\n"
 	return out
@@ -60,13 +63,21 @@ func (me *Out) addVar(v string, t string, index int) {
 func (me *Out) addClass(v string) {
 	me.hpp += "\nclass " + v + " {\n"
 	me.hpp += "\n\tpublic:\n"
-	me.reader += "void " + v + "::load(json_object *obj) {\n"
-	me.writer += "string " + v + "::read() {\n"
+	me.reader += "void " + v + `::load(string json) {
+	json_object *obj = json_tokener_parse(json.c_str());
+	load(obj);
+	free(obj);
+}
+
+`
+	me.reader += "void " + v + "::load(json_object *in) {\n"
+	me.writer += "string " + v + "::write() {\n"
 }
 
 func (me *Out) closeClass() {
+	me.hpp += "\n\t\tvoid load(string path);\n"
 	me.hpp += "\n\t\tvoid load(json_object *obj);\n"
-	me.hpp += "\t\tstring write();\n"
+	me.hpp += "\n\t\tstring write();\n"
 	me.hpp += "};\n\n"
 	me.reader += "}\n\n"
 	me.writer += "}\n\n"
@@ -79,7 +90,9 @@ func (me *Out) header() string {
 func (me *Out) body(headername string) string {
 	include := ""
 	if headername != "" {
-		include = `#include "` + headername + "\"\n\n"
+		include += `//Generated Code
+
+#include "` + headername + "\"\n\n"
 	}
 	return include + me.reader + me.writer[:len(me.writer)-1]
 }
@@ -88,7 +101,7 @@ func (me *Out) endsWithClose() bool {
 	return (me.hpp)[len(me.hpp)-3:] != "};\n"
 }
 
-func (me *Out) buildReader(v string, t string, index int, tabs int) string {
+func (me *Out) buildReader(v, t string, index, tabs int) string {
 	tabs += 2
 	out := "out" + strconv.Itoa(index)
 	tab := ""
@@ -96,12 +109,15 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 		tab += "\t"
 	}
 	reader := ""
-	//var jtype string
+
 	if index > 0 {
 		if tabs != 2 {
 			reader += tab[1:] + me.buildVar(out, t, index)
 		}
 		reader += tab[1:] + "{\n"
+		if tabs == 2 {
+			reader += tab + "json_object *obj = json_object_object_get(in, \"" + v + "\");\n"
+		}
 		reader += tab + "int size = json_object_array_length(obj);\n"
 		if tabs == 2 {
 			reader += tab + me.buildVar(out, t, index)
@@ -121,6 +137,8 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 		i := 0
 		if tabs == 2 {
 			reader += tab[1:] + "{\n"
+			reader += tab[1:] + "json_object *obj = json_object_object_get(in, \"" + v + "\");\n"
+
 		} else {
 			i += 1
 		}
@@ -135,7 +153,8 @@ func (me *Out) buildReader(v string, t string, index int, tabs int) string {
 			reader += tab[i:] + "string out0 = json_object_get_string(obj);\n"
 		default:
 			primitive = false
-			reader += tab + "this->" + v + ".load(obj);\n"
+			reader += tab[i:] + t + " out0;\n"
+			reader += tab[i:] + "out0.load(obj);\n"
 		}
 		if tabs == 2 && primitive {
 			reader += tab + "this->" + v + " = out0;\n"

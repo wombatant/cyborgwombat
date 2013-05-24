@@ -101,31 +101,32 @@ func (me *Out) endsWithClose() bool {
 	return (me.hpp)[len(me.hpp)-3:] != "};\n"
 }
 
-func (me *Out) buildReader(v, t string, index, tabs int) string {
-	tabs += 2
+func (me *Out) buildReader(v, t string, index, depth int) string {
+	depth += 1
 	out := "out" + strconv.Itoa(index)
 	tab := ""
+	tabs := depth * 2
 	for n := 0; n < tabs; n++ {
 		tab += "\t"
 	}
 	reader := ""
 
 	if index > 0 {
-		if tabs != 2 {
+		if depth != 1 {
 			reader += tab[1:] + me.buildVar(out, t, index)
 		}
 		reader += tab[1:] + "{\n"
-		if tabs == 2 {
-			reader += tab + "json_object *obj = json_object_object_get(in, \"" + v + "\");\n"
+		if depth == 1 {
+			reader += tab + "json_object *obj" + strconv.Itoa(index) + " = json_object_object_get(in, \"" + v + "\");\n"
 		}
-		reader += tab + "int size = json_object_array_length(obj);\n"
-		if tabs == 2 {
+		reader += tab + "int size = json_object_array_length(obj" + strconv.Itoa(index) + ");\n"
+		if depth == 1 {
 			reader += tab + me.buildVar(out, t, index)
 		}
 		reader += tab + "for (int i = 0; i < size; i++) {\n"
-		reader += tab + "\tjson_object *obj = json_object_array_get_idx(obj, i);\n"
-		reader += me.buildReader(v, t, index-1, tabs)
-		if tabs == 2 {
+		reader += tab + "\tjson_object *obj" + strconv.Itoa(index-1) + " = json_object_array_get_idx(obj" + strconv.Itoa(index) + ", i);\n"
+		reader += me.buildReader(v, t, index-1, depth)
+		if depth == 1 {
 			reader += tab + "\tthis->" + v + ".push_back(out" + strconv.Itoa(index-1) + ");\n"
 		} else {
 			reader += tab + "\t" + out + ".push_back(out" + strconv.Itoa(index-1) + ");\n"
@@ -135,31 +136,31 @@ func (me *Out) buildReader(v, t string, index, tabs int) string {
 	} else {
 		primitive := true
 		i := 0
-		if tabs == 2 {
+		if depth == 1 {
 			reader += tab[1:] + "{\n"
-			reader += tab[1:] + "json_object *obj = json_object_object_get(in, \"" + v + "\");\n"
+			reader += tab + "json_object *obj" + strconv.Itoa(index) + " = json_object_object_get(in, \"" + v + "\");\n"
 
 		} else {
 			i += 1
 		}
 		switch t { //type
 		case "float", "float32", "float64", "double":
-			reader += tab[i:] + "double out0 = json_object_get_double(obj);\n"
+			reader += tab[i:] + "double out0 = json_object_get_double(obj" + strconv.Itoa(index) + ");\n"
 		case "int":
-			reader += tab[i:] + "int out0 = json_object_get_int(obj);\n"
+			reader += tab[i:] + "int out0 = json_object_get_int(obj" + strconv.Itoa(index) + ");\n"
 		case "bool":
-			reader += tab[i:] + "bool out0 = json_object_get_bool(obj);\n"
+			reader += tab[i:] + "bool out0 = json_object_get_bool(obj" + strconv.Itoa(index) + ");\n"
 		case "string":
-			reader += tab[i:] + "string out0 = json_object_get_string(obj);\n"
+			reader += tab[i:] + "string out0 = json_object_get_string(obj" + strconv.Itoa(index) + ");\n"
 		default:
 			primitive = false
 			reader += tab[i:] + t + " out0;\n"
-			reader += tab[i:] + "out0.load(obj);\n"
+			reader += tab[i:] + "out0.load(obj" + strconv.Itoa(index) + ");\n"
 		}
-		if tabs == 2 && primitive {
+		if depth == 1 && primitive {
 			reader += tab + "this->" + v + " = out0;\n"
 		}
-		if tabs == 2 {
+		if depth == 1 {
 			reader += tab[1:] + "}\n"
 		}
 	}

@@ -76,6 +76,7 @@ func (me *Out) addVar(v, t string, index int) {
 }
 
 func (me *Out) addClass(v string) {
+	me.hpp += "\nnamespace models {\n"
 	me.hpp += "\nclass " + v + " {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
@@ -106,6 +107,7 @@ func (me *Out) addClass(v string) {
 
 func (me *Out) closeClass() {
 	me.hpp += "};\n\n"
+	me.hpp += "};\n\n"
 	me.constructor += "}\n\n"
 	me.reader += "\n\treturn true;\n}\n\n"
 	me.writer += "\n\treturn obj;\n}\n\n"
@@ -120,7 +122,11 @@ func (me *Out) body(headername string) string {
 	if headername != "" {
 		include += `//Generated Code
 
-#include "` + headername + "\"\n\n"
+#include "` + headername + `"
+
+using namespace models;
+
+`
 	}
 	return include + me.constructor + me.reader + me.writer[:len(me.writer)-1]
 }

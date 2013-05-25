@@ -27,7 +27,13 @@ import (
 func main() {
 	out := flag.String("o", "stdout", "File or file set(languages with header files) to write the output to")
 	in := flag.String("i", "", "The model file to generate JSON-C code for")
+	version := flag.Bool("v", false, "version")
 	flag.Parse()
+
+	if *version {
+		fmt.Println("modelmaker 0.0")
+		return
+	}
 	parseFile(*in, *out)
 }
 

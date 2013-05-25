@@ -56,7 +56,7 @@ func (me *Out) buildVar(v string, t string, index int) string {
 		out += "vector<"
 		array += " >"
 	}
-	out += t + array + " " + v + ";\n"
+	out += t + array + " " + v + ";"
 	return out
 }
 
@@ -67,7 +67,9 @@ func (me *Out) addVar(v string, t string, index int) {
 	}
 	t = me.typeMap(t)
 	me.hpp += "\t\t" + me.buildVar(v, t, index)
-	me.reader += me.buildReader(v, jsonV, t, index, 0)
+	var reader CppCode
+	reader.tabs += "\t"
+	me.reader += me.buildReader(&reader, v, jsonV, t, index, 0)
 	me.writer += me.buildWriter(v, jsonV, t, index)
 }
 
@@ -93,14 +95,14 @@ func (me *Out) addClass(v string) {
 }
 
 `
-	me.reader += "bool " + v + "::load(json_object *in) {\n"
+	me.reader += "bool " + v + "::load(json_object *in) {"
 	me.writer += "json_object* " + v + `::buildJsonObj() {
 	json_object *obj = json_object_new_object();`
 }
 
 func (me *Out) closeClass() {
 	me.hpp += "};\n\n"
-	me.reader += "\treturn true;\n}\n\n"
+	me.reader += "\n\treturn true;\n}\n\n"
 	me.writer += "\n\treturn obj;\n}\n\n"
 }
 
@@ -122,7 +124,7 @@ func (me *Out) endsWithClose() bool {
 	return (me.hpp)[len(me.hpp)-3:] != "};\n"
 }
 
-func (me *Out) buildReader(v, jsonV, t string, index, depth int) string {
+func (me *Out) buildReader(code *CppCode, v, jsonV, t string, index, depth int) string {
 	depth += 1
 	out := "out" + strconv.Itoa(index)
 	tab := ""
@@ -130,66 +132,65 @@ func (me *Out) buildReader(v, jsonV, t string, index, depth int) string {
 	for n := 0; n < tabs; n++ {
 		tab += "\t"
 	}
-	reader := ""
 
 	if index > 0 {
 		if depth != 1 {
-			reader += tab[1:] + me.buildVar(out, t, index)
+			code.Insert(me.buildVar(out, t, index))
 		}
-		reader += tab[1:] + "{\n"
+		code.PushBlock()
 		if depth == 1 {
-			reader += tab[0:] + "json_object *obj" + strconv.Itoa(index) + " = json_object_object_get(in, \"" + jsonV + "\");\n"
+			code.Insert("json_object *obj" + strconv.Itoa(index) + " = json_object_object_get(in, \"" + jsonV + "\");")
 		}
-		reader += tab[0:] + "if (json_object_get_type(obj" + strconv.Itoa(index) + ") != json_type_array) {\n"
-		reader += tab + "\treturn false;\n"
-		reader += tab + "}\n"
-		reader += tab + "int size = json_object_array_length(obj" + strconv.Itoa(index) + ");\n"
+		code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") != json_type_array")
+		code.Insert("return false;")
+		code.PopBlock()
+		code.Insert("int size = json_object_array_length(obj" + strconv.Itoa(index) + ");")
 		if depth == 1 {
-			reader += tab + me.buildVar(out, t, index)
+			code.Insert(me.buildVar(out, t, index))
 		}
-		reader += tab + "for (int i = 0; i < size; i++) {\n"
-		reader += tab + "\tjson_object *obj" + strconv.Itoa(index-1) + " = json_object_array_get_idx(obj" + strconv.Itoa(index) + ", i);\n"
-		reader += me.buildReader(v, jsonV, t, index-1, depth)
+		code.PushForBlock("int i = 0; i < size; i++")
+		code.Insert("json_object *obj" + strconv.Itoa(index-1) + " = json_object_array_get_idx(obj" + strconv.Itoa(index) + ", i);")
+
+		me.buildReader(code, v, jsonV, t, index-1, depth)
 		if depth == 1 {
-			reader += tab + "\tthis->" + v + ".push_back(out" + strconv.Itoa(index-1) + ");\n"
+			code.Insert("this->" + v + ".push_back(out" + strconv.Itoa(index-1) + ");")
 		} else {
-			reader += tab + "\t" + out + ".push_back(out" + strconv.Itoa(index-1) + ");\n"
+			code.Insert("" + out + ".push_back(out" + strconv.Itoa(index-1) + ");")
 		}
-		reader += tab[0:] + "}\n"
-		reader += tab[1:] + "}\n"
+		code.PopBlock()
+		code.PopBlock()
 	} else {
 		primitive := true
 		i := 0
 		if depth == 1 {
-			reader += tab[1:] + "{\n"
-			reader += tab + "json_object *obj" + strconv.Itoa(index) + " = json_object_object_get(in, \"" + jsonV + "\");\n"
-			reader += tab + "{\n"
+			code.PushBlock()
+			code.Insert("json_object *obj" + strconv.Itoa(index) + " = json_object_object_get(in, \"" + jsonV + "\");")
+			code.PushBlock()
 		} else {
 			i += 2
 		}
-		reader += tab[i:] + "\tif (json_object_get_type(obj" + strconv.Itoa(index) + ") != "
 		switch t { //type
 		case "bool", "int", "double":
-			reader += "json_type_" + t + ") return false;\n"
-			reader += tab[i:] + "\t" + t + " out0 = json_object_get_" + t + "(obj" + strconv.Itoa(index) + ");\n"
+			code.Insert("if (json_object_get_type(obj" + strconv.Itoa(index) + ") != " + "json_type_" + t + ") return false;")
+			code.Insert(t + " out0 = json_object_get_" + t + "(obj" + strconv.Itoa(index) + ");")
 		case "string":
-			reader += "json_type_string) return false;\n"
-			reader += tab[i:] + "\tstring out0 = json_object_get_string(obj" + strconv.Itoa(index) + ");\n"
+			code.Insert("if (json_object_get_type(obj" + strconv.Itoa(index) + ") != " + "json_type_string) return false;")
+			code.Insert("string out0 = json_object_get_string(obj" + strconv.Itoa(index) + ");")
 		default:
 			primitive = false
-			reader += "json_type_object) return false;\n"
-			reader += tab[i:] + "\t" + t + " out0;\n"
-			reader += tab[i:] + "\tout0.load(obj" + strconv.Itoa(index) + ");\n"
+			code.Insert("if (json_object_get_type(obj" + strconv.Itoa(index) + ") != " + "json_type_object) return false;")
+			code.Insert(t + " out0;")
+			code.Insert("out0.load(obj" + strconv.Itoa(index) + ");")
 		}
 		if depth == 1 && primitive {
-			reader += tab + "\tthis->" + v + " = out0;\n"
+			code.Insert("this->" + v + " = out0;")
 		}
 		if depth == 1 {
-			reader += tab + "}\n"
-			reader += tab[1:] + "}\n"
+			code.PopBlock()
+			code.PopBlock()
 		}
 	}
-	return reader
+	return code.String()
 }
 
 func (me *Out) buildArrayWriter(out *CppCode, t, v string, depth, index int) {

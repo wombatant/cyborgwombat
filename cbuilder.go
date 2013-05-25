@@ -136,6 +136,7 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t string, index, depth int) 
 		if depth == 1 {
 			code.Insert("json_object *obj" + strconv.Itoa(index) + " = json_object_object_get(in, \"" + jsonV + "\");")
 		}
+		code.PushIfBlock("obj" + strconv.Itoa(index) + " != NULL")
 		code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") != json_type_array")
 		code.Insert("return false;")
 		code.PopBlock()
@@ -154,13 +155,14 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t string, index, depth int) 
 		}
 		code.PopBlock()
 		code.PopBlock()
+		code.PopBlock()
 	} else {
 		primitive := true
 		i := 0
 		if depth == 1 {
 			code.PushBlock()
 			code.Insert("json_object *obj" + strconv.Itoa(index) + " = json_object_object_get(in, \"" + jsonV + "\");")
-			code.PushBlock()
+			code.PushIfBlock("obj" + strconv.Itoa(index) + " != NULL")
 		} else {
 			i += 2
 		}

@@ -58,6 +58,7 @@ func (me *Out) addVar(v string, t string, index int) {
 	}
 	me.hpp += "\t\t" + me.buildVar(v, t, index)
 	me.reader += me.buildReader(v, t, index, 0)
+	me.writer += me.buildWriter(v, t, index)
 }
 
 func (me *Out) addClass(v string) {
@@ -71,16 +72,17 @@ func (me *Out) addClass(v string) {
 
 `
 	me.reader += "bool " + v + "::load(json_object *in) {\n"
-	me.writer += "string " + v + "::write() {\n"
+	me.writer += "json_object* " + v + `::write() {
+	json_object *obj = json_object_new_object();`
 }
 
 func (me *Out) closeClass() {
 	me.hpp += "\n\t\tvoid load(string path);\n"
 	me.hpp += "\n\t\tbool load(json_object *obj);\n"
-	me.hpp += "\n\t\tstring write();\n"
+	me.hpp += "\n\t\tjson_object* write();\n"
 	me.hpp += "};\n\n"
 	me.reader += "\treturn true;\n}\n\n"
-	me.writer += "}\n\n"
+	me.writer += "\n\treturn obj;\n}\n\n"
 }
 
 func (me *Out) header() string {
@@ -177,8 +179,64 @@ func (me *Out) buildReader(v, t string, index, depth int) string {
 	return reader
 }
 
-func (me *Out) addWriter(v string, t string, index int) {
-	switch t { //type
-	case "int":
+func (me *Out) buildArrayWriter(out *CppCode, t, v string, depth, index int) {
+	sub := "[i]"
+	is := "i"
+	list := "this->" + v
+	for i := 0; i < depth; i++ {
+		if i < depth {
+			list += "[" + is + "]"
+		}
+		is += "i"
+		sub += "[" + is + "]"
 	}
+
+	out.Insert("json_object *array" + strconv.Itoa(depth) + " = json_object_new_array();")
+	out.PushForBlock("int " + is + " = 0; " + is + " < " + list + ".size(); " + is + "++")
+	if index != 0 {
+		me.buildArrayWriter(out, t, v, depth+1, index-1)
+		out.Insert("json_object_array_add(array" + strconv.Itoa(depth) + ", array" + strconv.Itoa(depth+1) + ");")
+	} else {
+		switch t {
+		case "float", "float32", "float64", "double":
+			out.Insert("json_object *out0 = json_object_new_double(this->" + v + sub + ");")
+		case "int":
+			out.Insert("json_object *out0 = json_object_new_int(this->" + v + sub + ");")
+		case "bool":
+			out.Insert("json_object *out0 = json_object_new_bool(this->" + v + sub + ");")
+		case "string":
+			out.Insert("json_object *out0 = json_object_new_string(this->" + v + sub + ".c_str());")
+		default:
+			out.Insert("json_object *out0 = this->" + v + sub + ".write();")
+		}
+		out.Insert("json_object_array_add(array" + strconv.Itoa(depth) + ", out0);")
+		out.Insert("free(out0);")
+	}
+	out.PopBlock()
+}
+
+func (me *Out) buildWriter(v, t string, index int) string {
+	var out CppCode
+	out.tabs = "\t"
+	out.PushBlock()
+	if index > 0 {
+		me.buildArrayWriter(&out, t, v, 0, index-1)
+		out.Insert("json_object_object_add(obj, \"" + v + "\", array0);")
+	} else {
+		switch t {
+		case "float", "float32", "float64", "double":
+			out.Insert("json_object *out0 = json_object_new_double(this->" + v + ");")
+		case "int":
+			out.Insert("json_object *out0 = json_object_new_int(this->" + v + ");")
+		case "bool":
+			out.Insert("json_object *out0 = json_object_new_bool(this->" + v + ");")
+		case "string":
+			out.Insert("json_object *out0 = json_object_new_string(this->" + v + ".c_str());")
+		default:
+		}
+		out.Insert("json_object_object_add(obj, \"" + v + "\", out0);")
+		out.Insert("free(out0);")
+	}
+	out.PopBlock()
+	return out.String()
 }

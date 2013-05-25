@@ -20,9 +20,10 @@ import (
 )
 
 type Out struct {
-	hpp    string
-	reader string
-	writer string
+	hpp         string
+	constructor string
+	reader      string
+	writer      string
 }
 
 func NewCOut() Out {
@@ -49,7 +50,7 @@ func (me *Out) typeMap(t string) string {
 	return ""
 }
 
-func (me *Out) buildVar(v string, t string, index int) string {
+func (me *Out) buildVar(v, t string, index int) string {
 	array := ""
 	out := ""
 	for i := 0; i < index; i++ {
@@ -60,15 +61,16 @@ func (me *Out) buildVar(v string, t string, index int) string {
 	return out
 }
 
-func (me *Out) addVar(v string, t string, index int) {
+func (me *Out) addVar(v, t string, index int) {
 	jsonV := v
 	if len(v) > 0 && v[0] < 91 {
 		v = string(v[0]+32) + v[1:]
 	}
 	t = me.typeMap(t)
-	me.hpp += "\t\t" + me.buildVar(v, t, index)
+	me.hpp += "\t\t" + me.buildVar(v, t, index) + "\n"
 	var reader CppCode
 	reader.tabs += "\t"
+	me.constructor += me.buildConstructor(v, t, index)
 	me.reader += me.buildReader(&reader, v, jsonV, t, index, 0)
 	me.writer += me.buildWriter(v, jsonV, t, index)
 }
@@ -76,10 +78,11 @@ func (me *Out) addVar(v string, t string, index int) {
 func (me *Out) addClass(v string) {
 	me.hpp += "\nclass " + v + " {\n"
 	me.hpp += "\n\tpublic:\n"
+	me.hpp += "\n\t\t" + v + "();\n"
 	me.hpp += "\n\t\tvoid load(string text);\n"
 	me.hpp += "\n\t\tstring write();\n"
 	me.hpp += "\n\t\tbool load(json_object *obj);\n"
-	me.hpp += "\n\t\tjson_object* buildJsonObj();\n"
+	me.hpp += "\n\t\tjson_object* buildJsonObj();\n\n"
 	me.reader += "void " + v + `::load(string json) {
 	json_object *obj = json_tokener_parse(json.c_str());
 	load(obj);
@@ -95,6 +98,7 @@ func (me *Out) addClass(v string) {
 }
 
 `
+	me.constructor += v + "::" + v + "() {\n"
 	me.reader += "bool " + v + "::load(json_object *in) {"
 	me.writer += "json_object* " + v + `::buildJsonObj() {
 	json_object *obj = json_object_new_object();`
@@ -102,6 +106,7 @@ func (me *Out) addClass(v string) {
 
 func (me *Out) closeClass() {
 	me.hpp += "};\n\n"
+	me.constructor += "}\n\n"
 	me.reader += "\n\treturn true;\n}\n\n"
 	me.writer += "\n\treturn obj;\n}\n\n"
 }
@@ -117,11 +122,23 @@ func (me *Out) body(headername string) string {
 
 #include "` + headername + "\"\n\n"
 	}
-	return include + me.reader + me.writer[:len(me.writer)-1]
+	return include + me.constructor + me.reader + me.writer[:len(me.writer)-1]
 }
 
 func (me *Out) endsWithClose() bool {
 	return (me.hpp)[len(me.hpp)-3:] != "};\n"
+}
+
+func (me *Out) buildConstructor(v, t string, index int) string {
+	if index < 1 {
+		switch t {
+		case "bool", "int", "double":
+			return "\tthis->" + v + " = 0;\n"
+		case "string":
+			return "\tthis->" + v + " = \"\";\n"
+		}
+	}
+	return ""
 }
 
 func (me *Out) buildReader(code *CppCode, v, jsonV, t string, index, depth int) string {
@@ -168,12 +185,12 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t string, index, depth int) 
 		}
 		switch t { //type
 		case "bool", "int", "double":
-			code.Insert(t + " out0;");
+			code.Insert(t + " out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") == " + "json_type_" + t)
 			code.Insert("out0 = json_object_get_" + t + "(obj" + strconv.Itoa(index) + ");")
 			code.PopBlock()
 		case "string":
-			code.Insert("string out0;");
+			code.Insert("string out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") == " + "json_type_string")
 			code.Insert("out0 = json_object_get_string(obj" + strconv.Itoa(index) + ");")
 			code.PopBlock()

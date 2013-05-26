@@ -134,7 +134,8 @@ func (me *Parser) processObject(tokens []lex.Token) (Out, error) {
 		}
 		prev = t.String()
 		if err != nil {
-			println(fmt.Sprintf("Error: world ended on line %d\n", line))
+			fmt.Errorf("Error: world ended on line %d\n", line)
+			os.Exit(1)
 			break
 		}
 	}

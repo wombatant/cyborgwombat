@@ -134,7 +134,7 @@ using namespace models;
 }
 
 func (me *Out) endsWithClose() bool {
-	return (me.hpp)[len(me.hpp)-3:] != "};\n"
+	return me.hpp[len(me.hpp)-3:] == "};\n"
 }
 
 func (me *Out) buildConstructor(v, t string, index int) string {

@@ -46,6 +46,9 @@ func parseFile(path, outFile string) {
 	var tokens []lex.Token
 
 	input := string(ss)
+	for input[len(input)-2] == '\n' && input[len(input)-1] == '\n' {
+		input = input[:len(input)-1]
+	}
 	symbols := []string{"[", "]"}
 	keywords := []string{}
 	stringTypes := []lex.Pair{}
@@ -135,7 +138,7 @@ func (me *Parser) processObject(tokens []lex.Token) (Out, error) {
 			break
 		}
 	}
-	if me.out.endsWithClose() {
+	if !me.out.endsWithClose() {
 		me.out.closeClass()
 	}
 	return me.out, err

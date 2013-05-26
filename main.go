@@ -31,7 +31,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("modelmaker version 0.1-dev")
+		fmt.Println("modelmaker version 0.1")
 		return
 	}
 	parseFile(*in, *out)

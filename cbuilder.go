@@ -33,6 +33,8 @@ func NewCOut() Out {
 #include <string>
 #include <vector>
 #include <json/json.h>
+#include "modelmakerdefs.hpp"
+
 
 using std::string;
 using std::vector;
@@ -77,7 +79,7 @@ func (me *Out) addVar(v, t string, index int) {
 
 func (me *Out) addClass(v string) {
 	me.hpp += "\nnamespace models {\n"
-	me.hpp += "\nclass " + v + " {\n"
+	me.hpp += "\nclass " + v + ": public Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
 	me.hpp += "\n\t\tvoid load(string text);\n"
@@ -190,10 +192,15 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t string, index, depth int) 
 			i += 2
 		}
 		switch t { //type
-		case "bool", "int", "double":
+		case "int", "double":
 			code.Insert(t + " out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") == " + "json_type_" + t)
 			code.Insert("out0 = json_object_get_" + t + "(obj" + strconv.Itoa(index) + ");")
+			code.PopBlock()
+		case "bool":
+			code.Insert(t + " out0;")
+			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") == " + "json_type_boolean")
+			code.Insert("out0 = json_object_get_boolean(obj" + strconv.Itoa(index) + ");")
 			code.PopBlock()
 		case "string":
 			code.Insert("string out0;")
@@ -237,8 +244,10 @@ func (me *Out) buildArrayWriter(out *CppCode, t, v string, depth, index int) {
 		out.Insert("json_object_array_add(array" + strconv.Itoa(depth) + ", array" + strconv.Itoa(depth+1) + ");")
 	} else {
 		switch t {
-		case "bool", "int", "double":
+		case "int", "double":
 			out.Insert("json_object *out0 = json_object_new_" + t + "(this->" + v + sub + ");")
+		case "bool":
+			out.Insert("json_object *out0 = json_object_new_boolean(this->" + v + sub + ");")
 		case "string":
 			out.Insert("json_object *out0 = json_object_new_string(this->" + v + sub + ".c_str());")
 		default:
@@ -258,8 +267,10 @@ func (me *Out) buildWriter(v, jsonV, t string, index int) string {
 		out.Insert("json_object_object_add(obj, \"" + jsonV + "\", array0);")
 	} else {
 		switch t {
-		case "bool", "int", "double":
+		case "int", "double":
 			out.Insert("json_object *out0 = json_object_new_" + t + "(this->" + v + ");")
+		case "bool":
+			out.Insert("json_object *out0 = json_object_new_boolean(this->" + v + ");")
 		case "string":
 			out.Insert("json_object *out0 = json_object_new_string(this->" + v + ".c_str());")
 		default:
@@ -269,4 +280,156 @@ func (me *Out) buildWriter(v, jsonV, t string, index int) string {
 	}
 	out.PopBlock()
 	return out.String()
+}
+
+func (me *Out) buildModelmakerDefsHeader() string {
+	out := `//Generated Code
+
+#include <string>
+#include <json/json.h>
+
+using std::string;
+
+namespace models {
+
+class unknown;
+
+class Model {
+	friend unknown;
+	protected:
+		virtual json_object* buildJsonObj() = 0;
+		virtual bool load(json_object *obj) = 0;
+};
+
+class unknown: public Model {
+	private:
+		json_object *m_obj;
+	public:
+		unknown();
+		~unknown();
+
+		bool loaded();
+		bool load(json_object *obj);
+		json_object* buildJsonObj();
+
+		bool toBool();
+		int toInt();
+		double toDouble();
+		string toString();
+		
+		bool isBool();
+		bool isInt();
+		bool isDouble();
+		bool isString();
+		bool isObject();
+
+		void set(Model* v);
+		void set(bool v);
+		void set(int v);
+		void set(double v);
+		void set(string v);
+};
+
+};
+`
+	return out
+}
+
+func (me *Out) buildModelmakerDefsBody() string {
+	out := `//Generated Code
+
+#include "modelmakerdefs.hpp"
+
+using namespace models;
+
+unknown::unknown() {
+	m_obj = 0;
+}
+
+unknown::~unknown() {
+	json_object_put(m_obj);
+}
+
+bool unknown::load(json_object *obj) {
+	//clone the input object because it will get deleted with its parent
+	m_obj = json_tokener_parse(json_object_to_json_string(obj));
+	return true;
+}
+
+json_object* unknown::buildJsonObj() {
+	return m_obj;
+}
+
+bool unknown::loaded() {
+	return m_obj;
+}
+
+bool unknown::isBool() {
+	return m_obj && json_object_get_type(m_obj) == json_type_boolean;
+}
+
+bool unknown::isInt() {
+	return m_obj && json_object_get_type(m_obj) == json_type_int;
+}
+
+bool unknown::isDouble() {
+	return m_obj && json_object_get_type(m_obj) == json_type_double;
+}
+
+bool unknown::isObject() {
+	return m_obj && json_object_get_type(m_obj) == json_type_object;
+}
+
+bool unknown::toBool() {
+	return json_object_get_boolean(m_obj);
+}
+
+int unknown::toInt() {
+	return json_object_get_int(m_obj);
+}
+
+double unknown::toDouble() {
+	return json_object_get_double(m_obj);
+}
+
+string unknown::toString() {
+	return json_object_get_string(m_obj);
+}
+
+void unknown::set(Model *v) {
+	json_object *obj = v->buildJsonObj();
+	json_object *old = m_obj;
+	m_obj = obj;
+	json_object_put(old);
+}
+
+void unknown::set(bool v) {
+	json_object *obj = json_object_new_boolean(v);
+	json_object *old = m_obj;
+	m_obj = obj;
+	json_object_put(old);
+}
+
+void unknown::set(int v) {
+	json_object *obj = json_object_new_int(v);
+	json_object *old = m_obj;
+	m_obj = obj;
+	json_object_put(old);
+}
+
+void unknown::set(double v) {
+	json_object *obj = json_object_new_double(v);
+	json_object *old = m_obj;
+	m_obj = obj;
+	json_object_put(old);
+}
+
+void unknown::set(string v) {
+	json_object *obj = json_object_new_string(v.c_str());
+	json_object *old = m_obj;
+	m_obj = obj;
+	json_object_put(old);
+}
+`
+	return out
 }

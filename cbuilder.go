@@ -210,48 +210,8 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			code.Insert("//array recursion end here")
 			code.PopBlock()
 			code.PopBlock()
-			/*
-			code.PushBlock()
-			if depth == 1 {
-				code.Insert("json_object *obj" + strconv.Itoa(len(index)) + " = json_object_object_get(in, \"" + jsonV + "\");")
-			}
-			code.PushIfBlock("obj" + strconv.Itoa(len(index)) + " != NULL")
-			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(len(index)) + ") != json_type_object")
-			code.Insert("json_object_object_foreach(obj" + strconv.Itoa(len(index)) + ", key, obj" + strconv.Itoa(len(index)-1) + ")")
-			code.PushBlock()
-			if len(index) != 1 {
-				code.Insert(me.buildVar("out"+strconv.Itoa(len(index)-1), t, index[1:]))
-			}
-			//me.buildReader(code, v, jsonV, t, index[1:], depth)
-			code.Insert("//map recursion here")
-
-			target := ""
-			if depth == 1 {
-				target = "this->" + v
-			} else {
-				target = out
-			}
-
-			mapTo := index[0][4:]
-			switch mapTo {
-			case "bool":
-				code.Insert(target + "[key == \"true\"] = out" + strconv.Itoa(len(index)-1) + ";")
-			case "double", "int", "string":
-				code.Insert("std::stringstream s;")
-				code.Insert(mapTo + " k;")
-				code.Insert("s << key;")
-				code.Insert("s >> k;")
-				code.Insert(target + "[k] = out" + strconv.Itoa(len(index)-1) + ";")
-			}
-
-			code.PopBlock()
-			code.PopBlock()
-			code.PopBlock()
-			code.PopBlock()
-			*/
 		}
 	} else {
-		primitive := true
 		i := 0
 		if depth == 1 {
 			code.PushBlock()
@@ -264,27 +224,23 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 		case "int", "double":
 			code.Insert(t + " out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_" + t)
-			code.Insert("out0 = json_object_get_" + t + "(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("this->" + v + sub + " = json_object_get_" + t + "(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "bool":
 			code.Insert(t + " out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_boolean")
-			code.Insert("out0 = json_object_get_boolean(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("this->" + v + sub + " = json_object_get_boolean(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "string":
 			code.Insert("string out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_string")
-			code.Insert("out0 = json_object_get_string(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("this->" + v + sub + " = json_object_get_string(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		default:
-			primitive = false
 			code.Insert(t + " out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_object")
-			code.Insert("out0.load(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("this->" + v + sub + ".load(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
-		}
-		if depth == 1 && primitive {
-			code.Insert("this->" + v + sub + " = out0;")
 		}
 		if depth == 1 {
 			code.PopBlock()
@@ -299,52 +255,35 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 	return code.String()
 }
 
-func (me *Out) buildArrayWriter(code *CppCode, t, v string, depth int, index []string) {
-	sub := ""
-	if index[0][:3] != "map" {
-		sub += "[i]"
-	}
+func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, index []string) {
 	is := "i"
-	ns := ""
-	list := "this->" + v
+	ns := "n"
 	for i := 0; i < depth; i++ {
-		if i < depth {
-			list += "[" + is + "]"
-		}
 		is += "i"
 		ns += "n"
-		if index[i][:3] == "map" {
-			if depth != 0 {
-				sub += "[" + ns + "->first]"
-			}
-		} else {
-			if i < depth-1 {
-				sub += "[" + is + "]"
-			}
-		}
 	}
 
 	if len(index) > depth {
 		if index[depth] == "array" {
 			code.Insert("json_object *out" + strconv.Itoa(len(index[depth:])) + " = json_object_new_array();")
-			code.PushForBlock("int " + is + " = 0; " + is + " < " + list + ".size(); " + is + "++")
-			me.buildArrayWriter(code, t, v, depth+1, index)
+			code.PushForBlock("int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
+			me.buildArrayWriter(code, t, v, sub + "[" + is + "]", depth+1, index)
 			//a,ura,ch.u,.cu,.arcurc
 			code.Insert("json_object_array_add(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()
 		} else if index[depth][:3] == "map" {
 			code.Insert("json_object *out" + strconv.Itoa(len(index[depth:])) + " = json_object_new_object();")
-			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator n" + ns + " = this->" + v + sub + ".begin(); n" + ns + " != this->" + v + sub + ".end(); n" + ns + "++")
-			switch index[len(index)-1][4:] {
+			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator " + ns + " = this->" + v + sub + ".begin(); " + ns + " != this->" + v + sub + ".end(); " + ns + "++")
+			switch index[depth][4:] {
 			case "bool":
-				code.Insert("string key = n" + ns + "->first ? \"true\" : \"false\";")
+				code.Insert("string key = " + ns + "->first ? \"true\" : \"false\";")
 			case "string", "int", "double":
 				code.Insert("std::stringstream s;")
 				code.Insert("string key;")
-				code.Insert("s << n" + ns + "->first;")
+				code.Insert("s << " + ns + "->first;")
 				code.Insert("s >> key;")
 			}
-			me.buildArrayWriter(code, t, v, depth+1, index)
+			me.buildArrayWriter(code, t, v, sub + "[" + ns + "->first]", depth+1, index)
 			code.Insert("json_object_object_add(out" + strconv.Itoa(len(index[depth:])) + ", key.c_str(), out" + strconv.Itoa(len(index[depth:])-1) + ");")
 			code.PopBlock()
 		}
@@ -367,7 +306,7 @@ func (me *Out) buildWriter(v, jsonV, t string, index []string) string {
 	out.tabs = "\t"
 	out.PushBlock()
 	if len(index) > 0 {
-		me.buildArrayWriter(&out, t, v, 0, index)
+		me.buildArrayWriter(&out, t, v, "", 0, index)
 		out.Insert("json_object_object_add(obj, \"" + jsonV + "\", out" + strconv.Itoa(len(index)) + ");")
 	} else {
 		switch t {

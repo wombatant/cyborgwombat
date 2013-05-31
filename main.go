@@ -31,7 +31,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("modelmaker version 0.2")
+		fmt.Println("modelmaker version 0.3-dev")
 		return
 	}
 	parseFile(*in, *out)
@@ -41,7 +41,7 @@ func parseFile(path, outFile string) {
 	ss, err := ioutil.ReadFile(path)
 	if err != nil {
 		println("Could not find or open specified model")
-		os.Exit(0)
+		os.Exit(2)
 	}
 	var tokens []lex.Token
 
@@ -91,15 +91,30 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 	}
 
 	variable := tokens[1].String()
-	index := 0
+	var index []string
 	tokens = tokens[3:]
-	for tokens[0].String() == "[" {
-		if tokens[1].String() != "]" {
-			return 0, errors.New("] expected")
+	for tokens[0].String() == "[" || tokens[0].String() == "map" {
+		if tokens[0].String() == "[" {
+			if tokens[1].String() != "]" {
+				return 0, errors.New("Unexpected token")
+			}
+			size += 2
+			index = append(index, "array")
+			tokens = tokens[2:]
+		} else if tokens[0].String() == "map" {
+			if tokens[1].String() == "[" {
+				switch tokens[2].String() {
+				case "bool", "int", "float", "float32", "float64", "double", "string":
+					size += 4
+					index = append(index, "map "+tokens[2].String())
+					tokens = tokens[4:]
+				default:
+					return 0, errors.New("Invalid map type, key must be bool, int, float, float32, float64, double, or string")
+				}
+			} else {
+				return 0, errors.New("Unexpected token")
+			}
 		}
-		size += 2
-		tokens = tokens[2:]
-		index++
 	}
 	t := tokens[0].String()
 	if len(tokens) < 1 {
@@ -134,7 +149,7 @@ func (me *Parser) processObject(tokens []lex.Token) (Out, error) {
 		}
 		prev = t.String()
 		if err != nil {
-			fmt.Errorf("Error: world ended on line %d\n", line)
+			println(fmt.Sprintf("Error: world ended on line %d\n       %s\n", line, err))
 			os.Exit(1)
 			break
 		}

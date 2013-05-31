@@ -46,6 +46,10 @@ func (me *CppCode) PushIfBlock(cond string) {
 	me.tabs += "\t"
 }
 
+func (me *CppCode) Else() {
+	me.text += "\n" + me.tabs[:len(me.tabs)-1] + "} else {"
+}
+
 func (me *CppCode) PushForBlock(cond string) {
 	me.text += "\n" + me.tabs + "for (" + cond + ") {"
 	me.tabs += "\t"

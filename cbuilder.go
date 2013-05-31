@@ -20,6 +20,8 @@ import (
 )
 
 type Out struct {
+	hppPrefix   string
+	classes     string
 	hpp         string
 	constructor string
 	reader      string
@@ -28,16 +30,19 @@ type Out struct {
 
 func NewCOut() Out {
 	var out Out
-	out.hpp = `//Generated Code
+	out.hppPrefix = `//Generated Code
 
 #include <string>
+#include <sstream>
 #include <vector>
+#include <map>
 #include <json/json.h>
 #include "modelmakerdefs.hpp"
 
 
 using std::string;
 using std::vector;
+using std::map;
 `
 	return out
 }
@@ -52,18 +57,27 @@ func (me *Out) typeMap(t string) string {
 	return ""
 }
 
-func (me *Out) buildVar(v, t string, index int) string {
+func (me *Out) buildTypeDec(t string, index []string) string {
 	array := ""
 	out := ""
-	for i := 0; i < index; i++ {
-		out += "vector<"
-		array += " >"
+	for i := 0; i < len(index); i++ {
+		if index[i] == "array" {
+			out += "vector<"
+			array += " >"
+		} else if index[i][:3] == "map" {
+			out += "map<" + index[i][4:] + ", "
+			array += " >"
+		}
 	}
-	out += t + array + " " + v + ";"
+	out += t + array
 	return out
 }
 
-func (me *Out) addVar(v, t string, index int) {
+func (me *Out) buildVar(v, t string, index []string) string {
+	return me.buildTypeDec(t, index) + " " + v + ";"
+}
+
+func (me *Out) addVar(v, t string, index []string) {
 	jsonV := v
 	if len(v) > 0 && v[0] < 91 {
 		v = string(v[0]+32) + v[1:]
@@ -72,12 +86,13 @@ func (me *Out) addVar(v, t string, index int) {
 	me.hpp += "\t\t" + me.buildVar(v, t, index) + "\n"
 	var reader CppCode
 	reader.tabs += "\t"
-	me.constructor += me.buildConstructor(v, t, index)
-	me.reader += me.buildReader(&reader, v, jsonV, t, index, 0)
+	me.constructor += me.buildConstructor(v, t, len(index))
+	me.reader += me.buildReader(&reader, v, jsonV, t, "", index, 0)
 	me.writer += me.buildWriter(v, jsonV, t, index)
 }
 
 func (me *Out) addClass(v string) {
+	me.classes += "\nnamespace models {\nclass " + v + ";\n}\n"
 	me.hpp += "\nnamespace models {\n"
 	me.hpp += "\nclass " + v + ": public Model {\n"
 	me.hpp += "\n\tpublic:\n"
@@ -116,7 +131,7 @@ func (me *Out) closeClass() {
 }
 
 func (me *Out) header() string {
-	return me.hpp
+	return me.hppPrefix + me.classes + me.hpp
 }
 
 func (me *Out) body(headername string) string {
@@ -127,6 +142,7 @@ func (me *Out) body(headername string) string {
 #include "` + headername + `"
 
 using namespace models;
+using std::stringstream;
 
 `
 	}
@@ -149,122 +165,210 @@ func (me *Out) buildConstructor(v, t string, index int) string {
 	return ""
 }
 
-func (me *Out) buildReader(code *CppCode, v, jsonV, t string, index, depth int) string {
-	depth += 1
-	out := "out" + strconv.Itoa(index)
-
-	if index > 0 {
-		if depth != 1 {
-			code.Insert(me.buildVar(out, t, index))
-		}
+func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
+	if depth == 0 {
 		code.PushBlock()
-		if depth == 1 {
-			code.Insert("json_object *obj" + strconv.Itoa(index) + " = json_object_object_get(in, \"" + jsonV + "\");")
+		code.Insert("json_object *obj" + strconv.Itoa(depth) + " = json_object_object_get(in, \"" + jsonV + "\");")
+	}
+	if len(index) > 0 {
+		is := "i"
+		for i := 0; i < depth; i++ {
+			is += "i"
 		}
-		code.PushIfBlock("obj" + strconv.Itoa(index) + " != NULL")
-		code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") != json_type_array")
-		code.Insert("return false;")
-		code.PopBlock()
-		code.Insert("int size = json_object_array_length(obj" + strconv.Itoa(index) + ");")
-		if depth == 1 {
-			code.Insert(me.buildVar(out, t, index))
+		if depth != 0 {
+			//code.Insert("json_object *obj" + strconv.Itoa(depth) + " = json_object_array_get_idx(obj" + strconv.Itoa(depth-1) + ", i);")
 		}
-		code.PushForBlock("int i = 0; i < size; i++")
-		code.Insert("json_object *obj" + strconv.Itoa(index-1) + " = json_object_array_get_idx(obj" + strconv.Itoa(index) + ", i);")
+		if index[0] == "array" {
+			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") != json_type_array")
+			code.Insert("int size = json_object_array_length(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("this->" + v + sub + ".resize(size);")
+			code.PushForBlock("int " + is + " = 0; " + is + " < size; " + is + "++")
+			code.Insert("json_object *obj" + strconv.Itoa(depth+1) + " = json_object_array_get_idx(obj" + strconv.Itoa(depth) + ", " + is + ");")
+			code.Insert("//array recursion start here")
+			me.buildReader(code, v, jsonV, t, sub + "[" + is + "]", index[1:], depth+1)
+			code.Insert("//array recursion end here")
+			code.PopBlock()
+			code.PopBlock()
+		} else if index[0][:3] == "map" {
+			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") != json_type_array")
+			code.Insert("int size = json_object_array_length(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("json_object_object_foreach(obj" + strconv.Itoa(depth) + ", key, obj" + strconv.Itoa(depth+1) + ")")
+			code.PushBlock()
+			code.Insert(index[0][4:] + " " + is + ";")
+			code.PushBlock()
+			switch index[0][4:] {
+			case "bool":
+				code.Insert(is + " = key == \"true\";")
+			case "double", "int", "string":
+				code.Insert("std::stringstream s;")
+				code.Insert("s << key;")
+				code.Insert("s >> " + is + ";")
+			}
+			code.PopBlock()
+			code.Insert("//array recursion start here")
+			me.buildReader(code, v, jsonV, t, sub + "[" + is + "]", index[1:], depth+1)
+			code.Insert("//array recursion end here")
+			code.PopBlock()
+			code.PopBlock()
+			/*
+			code.PushBlock()
+			if depth == 1 {
+				code.Insert("json_object *obj" + strconv.Itoa(len(index)) + " = json_object_object_get(in, \"" + jsonV + "\");")
+			}
+			code.PushIfBlock("obj" + strconv.Itoa(len(index)) + " != NULL")
+			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(len(index)) + ") != json_type_object")
+			code.Insert("json_object_object_foreach(obj" + strconv.Itoa(len(index)) + ", key, obj" + strconv.Itoa(len(index)-1) + ")")
+			code.PushBlock()
+			if len(index) != 1 {
+				code.Insert(me.buildVar("out"+strconv.Itoa(len(index)-1), t, index[1:]))
+			}
+			//me.buildReader(code, v, jsonV, t, index[1:], depth)
+			code.Insert("//map recursion here")
 
-		me.buildReader(code, v, jsonV, t, index-1, depth)
-		if depth == 1 {
-			code.Insert("this->" + v + ".push_back(out" + strconv.Itoa(index-1) + ");")
-		} else {
-			code.Insert("" + out + ".push_back(out" + strconv.Itoa(index-1) + ");")
+			target := ""
+			if depth == 1 {
+				target = "this->" + v
+			} else {
+				target = out
+			}
+
+			mapTo := index[0][4:]
+			switch mapTo {
+			case "bool":
+				code.Insert(target + "[key == \"true\"] = out" + strconv.Itoa(len(index)-1) + ";")
+			case "double", "int", "string":
+				code.Insert("std::stringstream s;")
+				code.Insert(mapTo + " k;")
+				code.Insert("s << key;")
+				code.Insert("s >> k;")
+				code.Insert(target + "[k] = out" + strconv.Itoa(len(index)-1) + ";")
+			}
+
+			code.PopBlock()
+			code.PopBlock()
+			code.PopBlock()
+			code.PopBlock()
+			*/
 		}
-		code.PopBlock()
-		code.PopBlock()
-		code.PopBlock()
 	} else {
 		primitive := true
 		i := 0
 		if depth == 1 {
 			code.PushBlock()
-			code.Insert("json_object *obj" + strconv.Itoa(index) + " = json_object_object_get(in, \"" + jsonV + "\");")
-			code.PushIfBlock("obj" + strconv.Itoa(index) + " != NULL")
+			code.Insert("json_object *obj" + strconv.Itoa(len(index)) + " = json_object_object_get(in, \"" + jsonV + "\");")
+			code.PushIfBlock("obj" + strconv.Itoa(len(index)) + " != NULL")
 		} else {
 			i += 2
 		}
 		switch t { //type
 		case "int", "double":
 			code.Insert(t + " out0;")
-			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") == " + "json_type_" + t)
-			code.Insert("out0 = json_object_get_" + t + "(obj" + strconv.Itoa(index) + ");")
+			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_" + t)
+			code.Insert("out0 = json_object_get_" + t + "(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "bool":
 			code.Insert(t + " out0;")
-			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") == " + "json_type_boolean")
-			code.Insert("out0 = json_object_get_boolean(obj" + strconv.Itoa(index) + ");")
+			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_boolean")
+			code.Insert("out0 = json_object_get_boolean(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "string":
 			code.Insert("string out0;")
-			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") == " + "json_type_string")
-			code.Insert("out0 = json_object_get_string(obj" + strconv.Itoa(index) + ");")
+			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_string")
+			code.Insert("out0 = json_object_get_string(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		default:
 			primitive = false
 			code.Insert(t + " out0;")
-			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(index) + ") == " + "json_type_object")
-			code.Insert("out0.load(obj" + strconv.Itoa(index) + ");")
+			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_object")
+			code.Insert("out0.load(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		}
 		if depth == 1 && primitive {
-			code.Insert("this->" + v + " = out0;")
+			code.Insert("this->" + v + sub + " = out0;")
 		}
 		if depth == 1 {
 			code.PopBlock()
 			code.PopBlock()
 		}
 	}
+
+	if depth == 0 {
+		code.PopBlock()
+	}
+
 	return code.String()
 }
 
-func (me *Out) buildArrayWriter(out *CppCode, t, v string, depth, index int) {
-	sub := "[i]"
+func (me *Out) buildArrayWriter(code *CppCode, t, v string, depth int, index []string) {
+	sub := ""
+	if index[0][:3] != "map" {
+		sub += "[i]"
+	}
 	is := "i"
+	ns := ""
 	list := "this->" + v
 	for i := 0; i < depth; i++ {
 		if i < depth {
 			list += "[" + is + "]"
 		}
 		is += "i"
-		sub += "[" + is + "]"
+		ns += "n"
+		if index[i][:3] == "map" {
+			if depth != 0 {
+				sub += "[" + ns + "->first]"
+			}
+		} else {
+			if i < depth-1 {
+				sub += "[" + is + "]"
+			}
+		}
 	}
 
-	out.Insert("json_object *array" + strconv.Itoa(depth) + " = json_object_new_array();")
-	out.PushForBlock("int " + is + " = 0; " + is + " < " + list + ".size(); " + is + "++")
-	if index != 0 {
-		me.buildArrayWriter(out, t, v, depth+1, index-1)
-		out.Insert("json_object_array_add(array" + strconv.Itoa(depth) + ", array" + strconv.Itoa(depth+1) + ");")
+	if len(index) > depth {
+		if index[depth] == "array" {
+			code.Insert("json_object *out" + strconv.Itoa(len(index[depth:])) + " = json_object_new_array();")
+			code.PushForBlock("int " + is + " = 0; " + is + " < " + list + ".size(); " + is + "++")
+			me.buildArrayWriter(code, t, v, depth+1, index)
+			//a,ura,ch.u,.cu,.arcurc
+			code.Insert("json_object_array_add(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			code.PopBlock()
+		} else if index[depth][:3] == "map" {
+			code.Insert("json_object *out" + strconv.Itoa(len(index[depth:])) + " = json_object_new_object();")
+			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator n" + ns + " = this->" + v + sub + ".begin(); n" + ns + " != this->" + v + sub + ".end(); n" + ns + "++")
+			switch index[len(index)-1][4:] {
+			case "bool":
+				code.Insert("string key = n" + ns + "->first ? \"true\" : \"false\";")
+			case "string", "int", "double":
+				code.Insert("std::stringstream s;")
+				code.Insert("string key;")
+				code.Insert("s << n" + ns + "->first;")
+				code.Insert("s >> key;")
+			}
+			me.buildArrayWriter(code, t, v, depth+1, index)
+			code.Insert("json_object_object_add(out" + strconv.Itoa(len(index[depth:])) + ", key.c_str(), out" + strconv.Itoa(len(index[depth:])-1) + ");")
+			code.PopBlock()
+		}
 	} else {
 		switch t {
 		case "int", "double":
-			out.Insert("json_object *out0 = json_object_new_" + t + "(this->" + v + sub + ");")
+			code.Insert("json_object *out0 = json_object_new_" + t + "(this->" + v + sub + ");")
 		case "bool":
-			out.Insert("json_object *out0 = json_object_new_boolean(this->" + v + sub + ");")
+			code.Insert("json_object *out0 = json_object_new_boolean(this->" + v + sub + ");")
 		case "string":
-			out.Insert("json_object *out0 = json_object_new_string(this->" + v + sub + ".c_str());")
+			code.Insert("json_object *out0 = json_object_new_string(this->" + v + sub + ".c_str());")
 		default:
-			out.Insert("json_object *out0 = this->" + v + sub + ".buildJsonObj();")
+			code.Insert("json_object *out0 = this->" + v + sub + ".buildJsonObj();")
 		}
-		out.Insert("json_object_array_add(array" + strconv.Itoa(depth) + ", out0);")
 	}
-	out.PopBlock()
 }
 
-func (me *Out) buildWriter(v, jsonV, t string, index int) string {
+func (me *Out) buildWriter(v, jsonV, t string, index []string) string {
 	var out CppCode
 	out.tabs = "\t"
 	out.PushBlock()
-	if index > 0 {
-		me.buildArrayWriter(&out, t, v, 0, index-1)
-		out.Insert("json_object_object_add(obj, \"" + jsonV + "\", array0);")
+	if len(index) > 0 {
+		me.buildArrayWriter(&out, t, v, 0, index)
+		out.Insert("json_object_object_add(obj, \"" + jsonV + "\", out" + strconv.Itoa(len(index)) + ");")
 	} else {
 		switch t {
 		case "int", "double":

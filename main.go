@@ -24,6 +24,16 @@ import (
 	"os"
 )
 
+type Var struct {
+	Name string
+	Var  []string
+}
+
+type Model struct {
+	Name string
+	Var  Var
+}
+
 func main() {
 	out := flag.String("o", "stdout", "File or file set(languages with header files) to write the output to")
 	in := flag.String("i", "", "The model file to generate JSON-C code for")
@@ -80,7 +90,8 @@ func parseFile(path, outFile string) {
 }
 
 type Parser struct {
-	out Out
+	out    Out
+	models []Model
 }
 
 func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
@@ -91,7 +102,7 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 	}
 
 	variable := tokens[1].String()
-	var index []string
+	var t []string
 	tokens = tokens[3:]
 	for tokens[0].String() == "[" || tokens[0].String() == "map" {
 		if tokens[0].String() == "[" {
@@ -99,14 +110,14 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 				return 0, errors.New("Unexpected token")
 			}
 			size += 2
-			index = append(index, "array")
+			t = append(t, "array")
 			tokens = tokens[2:]
 		} else if tokens[0].String() == "map" {
 			if tokens[1].String() == "[" {
 				switch tokens[2].String() {
 				case "bool", "int", "float", "float32", "float64", "double", "string":
 					size += 4
-					index = append(index, "map "+tokens[2].String())
+					t = append(t, "map "+tokens[2].String())
 					tokens = tokens[4:]
 				default:
 					return 0, errors.New("Invalid map type, key must be bool, int, float, float32, float64, double, or string")
@@ -116,11 +127,11 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 			}
 		}
 	}
-	t := tokens[0].String()
+	t = append(t, tokens[0].String())
 	if len(tokens) < 1 {
 		return 0, errors.New("Incomplete variable")
 	}
-	me.out.addVar(variable, t, index)
+	me.out.addVar(variable, t)
 	return size, nil
 }
 

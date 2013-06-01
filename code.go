@@ -41,6 +41,11 @@ func (me *CppCode) PushBlock() {
 	me.tabs += "\t"
 }
 
+func (me *CppCode) PushPrefixBlock(pre string) {
+	me.text += "\n" + me.tabs + pre + " {"
+	me.tabs += "\t"
+}
+
 func (me *CppCode) PushIfBlock(cond string) {
 	me.text += "\n" + me.tabs + "if (" + cond + ") {"
 	me.tabs += "\t"

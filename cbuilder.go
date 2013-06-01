@@ -77,12 +77,13 @@ func (me *Out) buildVar(v, t string, index []string) string {
 	return me.buildTypeDec(t, index) + " " + v + ";"
 }
 
-func (me *Out) addVar(v, t string, index []string) {
+func (me *Out) addVar(v string, index []string) {
 	jsonV := v
 	if len(v) > 0 && v[0] < 91 {
 		v = string(v[0]+32) + v[1:]
 	}
-	t = me.typeMap(t)
+	t := me.typeMap(index[len(index)-1])
+	index = index[:len(index)-1]
 	me.hpp += "\t\t" + me.buildVar(v, t, index) + "\n"
 	var reader CppCode
 	reader.tabs += "\t"
@@ -184,16 +185,13 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			code.Insert("this->" + v + sub + ".resize(size);")
 			code.PushForBlock("int " + is + " = 0; " + is + " < size; " + is + "++")
 			code.Insert("json_object *obj" + strconv.Itoa(depth+1) + " = json_object_array_get_idx(obj" + strconv.Itoa(depth) + ", " + is + ");")
-			code.Insert("//array recursion start here")
-			me.buildReader(code, v, jsonV, t, sub + "[" + is + "]", index[1:], depth+1)
-			code.Insert("//array recursion end here")
+			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0][:3] == "map" {
 			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") != json_type_array")
 			code.Insert("int size = json_object_array_length(obj" + strconv.Itoa(depth) + ");")
-			code.Insert("json_object_object_foreach(obj" + strconv.Itoa(depth) + ", key, obj" + strconv.Itoa(depth+1) + ")")
-			code.PushBlock()
+			code.PushPrefixBlock("json_object_object_foreach(obj" + strconv.Itoa(depth) + ", key, obj" + strconv.Itoa(depth+1) + ")")
 			code.Insert(index[0][4:] + " " + is + ";")
 			code.PushBlock()
 			switch index[0][4:] {
@@ -205,9 +203,7 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 				code.Insert("s >> " + is + ";")
 			}
 			code.PopBlock()
-			code.Insert("//array recursion start here")
-			me.buildReader(code, v, jsonV, t, sub + "[" + is + "]", index[1:], depth+1)
-			code.Insert("//array recursion end here")
+			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
 		}
@@ -267,8 +263,7 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 		if index[depth] == "array" {
 			code.Insert("json_object *out" + strconv.Itoa(len(index[depth:])) + " = json_object_new_array();")
 			code.PushForBlock("int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
-			me.buildArrayWriter(code, t, v, sub + "[" + is + "]", depth+1, index)
-			//a,ura,ch.u,.cu,.arcurc
+			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+1, index)
 			code.Insert("json_object_array_add(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()
 		} else if index[depth][:3] == "map" {
@@ -283,7 +278,7 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 				code.Insert("s << " + ns + "->first;")
 				code.Insert("s >> key;")
 			}
-			me.buildArrayWriter(code, t, v, sub + "[" + ns + "->first]", depth+1, index)
+			me.buildArrayWriter(code, t, v, sub+"["+ns+"->first]", depth+1, index)
 			code.Insert("json_object_object_add(out" + strconv.Itoa(len(index[depth:])) + ", key.c_str(), out" + strconv.Itoa(len(index[depth:])-1) + ");")
 			code.PopBlock()
 		}

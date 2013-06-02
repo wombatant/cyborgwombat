@@ -178,7 +178,7 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			//code.Insert("json_object *obj" + strconv.Itoa(depth) + " = json_object_array_get_idx(obj" + strconv.Itoa(depth-1) + ", i);")
 		}
 		if index[0] == "array" {
-			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") != json_type_array")
+			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") == json_type_array")
 			code.Insert("unsigned int size = json_object_array_length(obj" + strconv.Itoa(depth) + ");")
 			code.Insert("this->" + v + sub + ".resize(size);")
 			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < size; " + is + "++")
@@ -187,7 +187,7 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0][:3] == "map" {
-			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") != json_type_array")
+			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") == json_type_object")
 			code.PushPrefixBlock("json_object_object_foreach(obj" + strconv.Itoa(depth) + ", key, obj" + strconv.Itoa(depth+1) + ")")
 			code.Insert(index[0][4:] + " " + is + ";")
 			code.PushBlock()

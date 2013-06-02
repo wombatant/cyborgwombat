@@ -123,7 +123,7 @@ func (me *Out) addClass(v string) {
 
 func (me *Out) closeClass() {
 	me.hpp += "};\n\n"
-	me.hpp += "};\n\n"
+	me.hpp += "}\n\n"
 	me.constructor += "}\n\n"
 	me.reader += "\n\treturn true;\n}\n\n"
 	me.writer += "\n\treturn obj;\n}\n\n"

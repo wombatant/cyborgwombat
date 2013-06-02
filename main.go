@@ -128,7 +128,7 @@ func topSortModels(models []*Model) []*Model {
 					node.dependents = append(node.dependents, v.model.Name)
 					v.remainingDependancies++
 				} else {
-					println(fmt.Sprintf("Error: unrecognized type: %d\n", t))
+					println(fmt.Sprintf("Error: unrecognized type: %d", t))
 					os.Exit(3)
 				}
 			}
@@ -136,11 +136,14 @@ func topSortModels(models []*Model) []*Model {
 	}
 
 	index := 0
+	cyclicalDeps := false
 	//sort
-	for len(a) != 0 {
+	for len(a) != 0 && !cyclicalDeps {
+		cyclicalDeps = true
 		for i := 0; i < len(a); i++ {
 			v := a[i]
 			if v.remainingDependancies < 1 {
+				cyclicalDeps = false
 				out[index] = v.model
 				index++
 				a[i] = a[len(a)-1]
@@ -150,6 +153,10 @@ func topSortModels(models []*Model) []*Model {
 				}
 			}
 		}
+	}
+	if cyclicalDeps {
+		println(fmt.Sprintf("Error: cyclical dependency detected"))
+		os.Exit(4)
 	}
 	return out
 }
@@ -221,7 +228,7 @@ func (me *Parser) processFile(tokens []lex.Token) (Out, error) {
 			err = errors.New("Unidentified token")
 		}
 		if err != nil {
-			println(fmt.Sprintf("Error: world ended on line %d\n       %s\n", line, err))
+			println(fmt.Sprintf("Error: world ended on line %d\n       %s", line, err))
 			os.Exit(1)
 			break
 		}

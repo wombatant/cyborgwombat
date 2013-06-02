@@ -21,7 +21,6 @@ import (
 
 type Out struct {
 	hppPrefix   string
-	classes     string
 	hpp         string
 	constructor string
 	reader      string
@@ -93,7 +92,6 @@ func (me *Out) addVar(v string, index []string) {
 }
 
 func (me *Out) addClass(v string) {
-	me.classes += "\nnamespace models {\nclass " + v + ";\n}\n"
 	me.hpp += "\nnamespace models {\n"
 	me.hpp += "\nclass " + v + ": public Model {\n"
 	me.hpp += "\n\tpublic:\n"
@@ -132,7 +130,7 @@ func (me *Out) closeClass() {
 }
 
 func (me *Out) header() string {
-	return me.hppPrefix + me.classes + me.hpp
+	return me.hppPrefix + me.hpp
 }
 
 func (me *Out) body(headername string) string {
@@ -181,16 +179,15 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 		}
 		if index[0] == "array" {
 			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") != json_type_array")
-			code.Insert("int size = json_object_array_length(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("unsigned int size = json_object_array_length(obj" + strconv.Itoa(depth) + ");")
 			code.Insert("this->" + v + sub + ".resize(size);")
-			code.PushForBlock("int " + is + " = 0; " + is + " < size; " + is + "++")
+			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < size; " + is + "++")
 			code.Insert("json_object *obj" + strconv.Itoa(depth+1) + " = json_object_array_get_idx(obj" + strconv.Itoa(depth) + ", " + is + ");")
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0][:3] == "map" {
 			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") != json_type_array")
-			code.Insert("int size = json_object_array_length(obj" + strconv.Itoa(depth) + ");")
 			code.PushPrefixBlock("json_object_object_foreach(obj" + strconv.Itoa(depth) + ", key, obj" + strconv.Itoa(depth+1) + ")")
 			code.Insert(index[0][4:] + " " + is + ";")
 			code.PushBlock()
@@ -218,22 +215,18 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 		}
 		switch t { //type
 		case "int", "double":
-			code.Insert(t + " out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_" + t)
 			code.Insert("this->" + v + sub + " = json_object_get_" + t + "(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "bool":
-			code.Insert(t + " out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_boolean")
 			code.Insert("this->" + v + sub + " = json_object_get_boolean(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "string":
-			code.Insert("string out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_string")
 			code.Insert("this->" + v + sub + " = json_object_get_string(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		default:
-			code.Insert(t + " out0;")
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_object")
 			code.Insert("this->" + v + sub + ".load(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
@@ -262,7 +255,7 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 	if len(index) > depth {
 		if index[depth] == "array" {
 			code.Insert("json_object *out" + strconv.Itoa(len(index[depth:])) + " = json_object_new_array();")
-			code.PushForBlock("int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
+			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
 			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+1, index)
 			code.Insert("json_object_array_add(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()

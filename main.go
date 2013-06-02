@@ -26,12 +26,12 @@ import (
 
 type Var struct {
 	Name string
-	Var  []string
+	Type []string
 }
 
 type Model struct {
 	Name string
-	Var  Var
+	Vars []Var
 }
 
 func main() {
@@ -73,7 +73,7 @@ func parseFile(path, outFile string) {
 
 	var p Parser
 	p.out = NewCOut()
-	out, err := p.processObject(tokens)
+	out, err := p.processFile(tokens)
 	if err != nil {
 		return
 	} else {
@@ -89,9 +89,74 @@ func parseFile(path, outFile string) {
 	}
 }
 
+func isScalar(v string) bool {
+	switch v {
+	case "bool", "int", "double", "float32", "float64", "string", "unknown":
+		return true
+	}
+	return false
+}
+
+/*
+  Topicologically sorts models to be sure they are declared
+  in a workable order.
+*/
+func topSortModels(models []*Model) []*Model {
+	type topSortNode struct {
+		model                 *Model
+		remainingDependancies int
+		//indices of if dependents
+		dependents []string
+	}
+
+	out := make([]*Model, len(models))
+	m := make(map[string]*topSortNode)
+	a := make([]*topSortNode, len(models))
+	//build name map
+	for i, v := range models {
+		node := new(topSortNode)
+		node.model = v
+		a[i] = node
+		m[v.Name] = node
+	}
+	//build dependency structure
+	for _, v := range a {
+		for _, vv := range v.model.Vars {
+			t := vv.Type[len(vv.Type)-1]
+			if !isScalar(t) {
+				if node, ok := m[t]; ok {
+					node.dependents = append(node.dependents, v.model.Name)
+					v.remainingDependancies++
+				} else {
+					println(fmt.Sprintf("Error: unrecognized type: %d\n", t))
+					os.Exit(3)
+				}
+			}
+		}
+	}
+
+	index := 0
+	//sort
+	for len(a) != 0 {
+		for i := 0; i < len(a); i++ {
+			v := a[i]
+			if v.remainingDependancies < 1 {
+				out[index] = v.model
+				index++
+				a[i] = a[len(a)-1]
+				a = a[:len(a)-1]
+				for _, vv := range v.dependents {
+					m[vv].remainingDependancies--
+				}
+			}
+		}
+	}
+	return out
+}
+
 type Parser struct {
 	out    Out
-	models []Model
+	models []*Model
 }
 
 func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
@@ -131,41 +196,42 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 	if len(tokens) < 1 {
 		return 0, errors.New("Incomplete variable")
 	}
-	me.out.addVar(variable, t)
+	m := me.models[len(me.models)-1]
+	m.Vars = append(m.Vars, Var{Name: variable, Type: t})
 	return size, nil
 }
 
-func (me *Parser) processObject(tokens []lex.Token) (Out, error) {
+func (me *Parser) processFile(tokens []lex.Token) (Out, error) {
 	line := 1
 	var err error
-	prev := ""
 	for i := 0; i < len(tokens); i++ {
 		t := tokens[i]
 		switch t.TokType {
 		case lex.Whitespace:
 			if t.String() == "\n" {
 				line++
-				if prev == "\n" {
-					me.out.closeClass()
-				}
 			} else if t.String() == "\t" {
 				var size int
 				size, err = me.processVariable(tokens[i:])
 				i += size
 			}
 		case lex.Identifier:
-			me.out.addClass(t.String())
+			me.models = append(me.models, &Model{Name: t.String()})
 		default:
 			err = errors.New("Unidentified token")
 		}
-		prev = t.String()
 		if err != nil {
 			println(fmt.Sprintf("Error: world ended on line %d\n       %s\n", line, err))
 			os.Exit(1)
 			break
 		}
 	}
-	if !me.out.endsWithClose() {
+	me.models = topSortModels(me.models)
+	for _, v := range me.models {
+		me.out.addClass(v.Name)
+		for _, vv := range v.Vars {
+			me.out.addVar(vv.Name, vv.Type)
+		}
 		me.out.closeClass()
 	}
 	return me.out, err

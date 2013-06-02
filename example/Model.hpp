@@ -32,6 +32,7 @@ class Model1: public Model {
 		unknown field2;
 		vector<int > field3;
 		vector<vector<string > > field4;
+		map<string, string > field5;
 };
 
 }

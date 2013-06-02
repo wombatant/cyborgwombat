@@ -73,7 +73,7 @@ func parseFile(path, outFile string) {
 
 	var p Parser
 	p.out = NewCOut()
-	out, err := p.processFile(tokens)
+	out, err := p.parse(tokens)
 	if err != nil {
 		return
 	} else {
@@ -208,7 +208,7 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 	return size, nil
 }
 
-func (me *Parser) processFile(tokens []lex.Token) (Out, error) {
+func (me *Parser) parse(tokens []lex.Token) (Out, error) {
 	line := 1
 	var err error
 	for i := 0; i < len(tokens); i++ {

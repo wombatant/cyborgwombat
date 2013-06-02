@@ -21,7 +21,7 @@ using namespace models;
 
 int main() {
 	Model1 mod;
-	mod.load("{\"Field1\": \"Ni!\", \"Field2\": 5, \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]]}");
+	mod.load("{\"Field1\": \"Ni!\", \"Field2\": 5, \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]], \"Field5\": {\"Narf\": \"Ni\"}}");
 	cout << mod.write() << endl;
 	return 0;
 }

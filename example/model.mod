@@ -3,4 +3,5 @@ Model1
 	Field2 unknown
 	Field3 []int
 	Field4 [][]string
+	Field5 map[string]string
 

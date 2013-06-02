@@ -64,6 +64,27 @@ bool Model1::load(json_object *in) {
 			}
 		}
 	}
+	{
+		json_object *obj0 = json_object_object_get(in, "Field5");
+		if (obj0 != NULL && json_object_get_type(obj0) == json_type_object) {
+			json_object_object_foreach(obj0, key, obj1) {
+				string i;
+				{
+					std::stringstream s;
+					s << key;
+					s >> i;
+				}
+				{
+					json_object *obj0 = json_object_object_get(in, "Field5");
+					if (obj0 != NULL) {
+						if (json_object_get_type(obj1) == json_type_string) {
+							this->field5[i] = json_object_get_string(obj1);
+						}
+					}
+				}
+			}
+		}
+	}
 	return true;
 }
 
@@ -103,6 +124,18 @@ json_object* Model1::buildJsonObj() {
 			json_object_array_add(out2, out1);
 		}
 		json_object_object_add(obj, "Field4", out2);
+	}
+	{
+		json_object *out1 = json_object_new_object();
+		for (map<string, string >::iterator n = this->field5.begin(); n != this->field5.end(); n++) {
+			std::stringstream s;
+			string key;
+			s << n->first;
+			s >> key;
+			json_object *out0 = json_object_new_string(this->field5[n->first].c_str());
+			json_object_object_add(out1, key.c_str(), out0);
+		}
+		json_object_object_add(obj, "Field5", out1);
 	}
 	return obj;
 }

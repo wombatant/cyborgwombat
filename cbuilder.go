@@ -226,6 +226,8 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_string")
 			code.Insert("this->" + v + sub + " = json_object_get_string(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
+		case "unknown":
+			code.Insert("this->" + v + sub + ".load(obj" + strconv.Itoa(depth) + ");")
 		default:
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_object")
 			code.Insert("this->" + v + sub + ".load(obj" + strconv.Itoa(depth) + ");")

@@ -24,9 +24,7 @@ bool Model1::load(json_object *in) {
 	}
 	{
 		json_object *obj0 = json_object_object_get(in, "Field2");
-		if (json_object_get_type(obj0) == json_type_object) {
-			this->field2.load(obj0);
-		}
+		this->field2.load(obj0);
 	}
 	{
 		json_object *obj0 = json_object_object_get(in, "Field3");

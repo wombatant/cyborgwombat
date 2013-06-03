@@ -51,7 +51,7 @@ func parseFile(path, outFile string) {
 	ss, err := ioutil.ReadFile(path)
 	if err != nil {
 		println("Could not find or open specified model")
-		os.Exit(2)
+		os.Exit(1)
 	}
 	var tokens []lex.Token
 
@@ -75,6 +75,8 @@ func parseFile(path, outFile string) {
 	p.out = NewCOut()
 	out, err := p.parse(tokens)
 	if err != nil {
+		println(err)
+		os.Exit(2)
 		return
 	} else {
 		if outFile == "stdout" {
@@ -128,7 +130,7 @@ func topSortModels(models []*Model) []*Model {
 					node.dependents = append(node.dependents, v.model.Name)
 					v.remainingDependancies++
 				} else {
-					println(fmt.Sprintf("Error: unrecognized type: %d", t))
+					println(fmt.Sprintf("Error: unrecognized type: %s", t))
 					os.Exit(3)
 				}
 			}
@@ -173,9 +175,26 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 		return 0, errors.New("Incomplete variable")
 	}
 
-	variable := tokens[1].String()
 	var t []string
-	tokens = tokens[3:]
+	var variable string
+	if len(tokens) > 2 {
+		variable = tokens[1].String()
+		tokens = tokens[2:]
+	} else {
+		return 0, errors.New("Error: unexpected end of file")
+	}
+	for {
+		if len(tokens) > 0 {
+			if tokens[0].String() == " " || tokens[0].String() == "\t" {
+				tokens = tokens[1:]
+				size++
+			} else {
+				break
+			}
+		} else {
+			return 0, errors.New("Error: unexpected end of file")
+		}
+	}
 	for tokens[0].String() == "[" || tokens[0].String() == "map" {
 		if tokens[0].String() == "[" {
 			if tokens[1].String() != "]" {
@@ -220,17 +239,16 @@ func (me *Parser) parse(tokens []lex.Token) (Out, error) {
 			} else if t.String() == "\t" {
 				var size int
 				size, err = me.processVariable(tokens[i:])
+				if err != nil {
+					return me.out, err
+				}
 				i += size
 			}
 		case lex.Identifier:
 			me.models = append(me.models, &Model{Name: t.String()})
 		default:
-			err = errors.New("Unidentified token")
-		}
-		if err != nil {
-			println(fmt.Sprintf("Error: world ended on line %d\n       %s", line, err))
-			os.Exit(1)
-			break
+			err = errors.New(fmt.Sprintf("Error: world ended on line %d\n       Unexpected token", line+1))
+			return me.out, err
 		}
 	}
 	me.models = topSortModels(me.models)

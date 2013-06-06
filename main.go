@@ -37,17 +37,18 @@ type Model struct {
 func main() {
 	out := flag.String("o", "stdout", "File or file set(languages with header files) to write the output to")
 	in := flag.String("i", "", "The model file to generate JSON-C code for")
+	namespace := flag.String("n", "models", "Namespace for the models")
 	version := flag.Bool("v", false, "version")
 	flag.Parse()
 
 	if *version {
-		fmt.Println("modelmaker version 0.3")
+		fmt.Println("modelmaker version 0.4")
 		return
 	}
-	parseFile(*in, *out)
+	parseFile(*in, *out, *namespace)
 }
 
-func parseFile(path, outFile string) {
+func parseFile(path, outFile, namespace string) {
 	ss, err := ioutil.ReadFile(path)
 	if err != nil {
 		println("Could not find or open specified model")
@@ -72,7 +73,7 @@ func parseFile(path, outFile string) {
 	}
 
 	var p Parser
-	p.out = NewCOut()
+	p.out = NewCOut(namespace)
 	out, err := p.parse(tokens)
 	if err != nil {
 		println(err)

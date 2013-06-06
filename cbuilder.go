@@ -25,10 +25,12 @@ type Out struct {
 	constructor string
 	reader      string
 	writer      string
+	namespace   string
 }
 
-func NewCOut() Out {
+func NewCOut(namespace string) Out {
 	var out Out
+	out.namespace = namespace
 	out.hppPrefix = `//Generated Code
 
 #include <string>
@@ -92,7 +94,7 @@ func (me *Out) addVar(v string, index []string) {
 }
 
 func (me *Out) addClass(v string) {
-	me.hpp += "\nnamespace models {\n"
+	me.hpp += "\nnamespace " + me.namespace + " {\n"
 	me.hpp += "\nclass " + v + ": public Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
@@ -140,7 +142,7 @@ func (me *Out) body(headername string) string {
 
 #include "` + headername + `"
 
-using namespace models;
+using namespace ` + me.namespace + `;
 using std::stringstream;
 
 `
@@ -323,14 +325,18 @@ func (me *Out) buildModelmakerDefsHeader() string {
 
 using std::string;
 
-namespace models {
+namespace ` + me.namespace + ` {
 
 class unknown;
 
 class Model {
 	friend unknown;
+	public:
+		bool loadFile(string path);
+		void writeFile(string path);
 	protected:
 		virtual json_object* buildJsonObj() = 0;
+		virtual string write() = 0;
 		virtual bool load(json_object *obj) = 0;
 };
 
@@ -371,9 +377,32 @@ class unknown: public Model {
 func (me *Out) buildModelmakerDefsBody() string {
 	out := `//Generated Code
 
+#include <fstream>
 #include "modelmakerdefs.hpp"
 
-using namespace models;
+using namespace ` + me.namespace + `;
+
+bool Model::loadFile(string path) {
+	std::ifstream in;
+	in.open(path.c_str());
+	string json;
+	if (in.is_open()) {
+		while (in.good()) {
+			in >> json;
+		}
+		in.close();
+		return true;
+	}
+	return false;
+}
+
+void Model::writeFile(string path) {
+	std::ofstream out;
+	out.open(path.c_str());
+	string json = write();
+	out << json << "\n";
+	out.close();
+}
 
 unknown::unknown() {
 	m_obj = 0;

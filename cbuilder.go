@@ -52,6 +52,8 @@ func (me *Out) typeMap(t string) string {
 	switch t {
 	case "float", "float32", "float64", "double":
 		return "double"
+	case "unknown":
+		return "modelmaker::unknown"
 	default:
 		return t
 	}
@@ -95,25 +97,16 @@ func (me *Out) addVar(v string, index []string) {
 
 func (me *Out) addClass(v string) {
 	me.hpp += "\nnamespace " + me.namespace + " {\n"
-	me.hpp += "\nclass " + v + ": public Model {\n"
+	me.hpp += "\nclass " + v + ": public modelmaker::Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
 	me.hpp += "\n\t\tvoid load(string text);\n"
-	me.hpp += "\n\t\tstring write();\n"
 	me.hpp += "\n\t\tbool load(json_object *obj);\n"
 	me.hpp += "\n\t\tjson_object* buildJsonObj();\n\n"
 	me.reader += "void " + v + `::load(string json) {
 	json_object *obj = json_tokener_parse(json.c_str());
 	load(obj);
 	json_object_put(obj);
-}
-
-`
-	me.writer += "string " + v + `::write() {
-	json_object *obj = buildJsonObj();
-	string out = json_object_to_json_string(obj);
-	json_object_put(obj);
-	return out;
 }
 
 `
@@ -228,7 +221,7 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_string")
 			code.Insert("this->" + v + sub + " = json_object_get_string(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
-		case "unknown":
+		case "modelmaker::unknown":
 			code.Insert("this->" + v + sub + ".load(obj" + strconv.Itoa(depth) + ");")
 		default:
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_object")
@@ -325,7 +318,7 @@ func (me *Out) buildModelmakerDefsHeader() string {
 
 using std::string;
 
-namespace ` + me.namespace + ` {
+namespace modelmaker {
 
 class unknown;
 
@@ -334,9 +327,9 @@ class Model {
 	public:
 		bool loadFile(string path);
 		void writeFile(string path);
+		string write();
 	protected:
 		virtual json_object* buildJsonObj() = 0;
-		virtual string write() = 0;
 		virtual bool load(json_object *obj) = 0;
 };
 
@@ -380,7 +373,7 @@ func (me *Out) buildModelmakerDefsBody() string {
 #include <fstream>
 #include "modelmakerdefs.hpp"
 
-using namespace ` + me.namespace + `;
+using namespace modelmaker;
 
 bool Model::loadFile(string path) {
 	std::ifstream in;
@@ -402,6 +395,13 @@ void Model::writeFile(string path) {
 	string json = write();
 	out << json << "\n";
 	out.close();
+}
+
+string Model::write() {
+	json_object *obj = buildJsonObj();
+	string out = json_object_to_json_string(obj);
+	json_object_put(obj);
+	return out;
 }
 
 unknown::unknown() {

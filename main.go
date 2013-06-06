@@ -81,10 +81,10 @@ func parseFile(path, outFile, namespace string) {
 		return
 	} else {
 		if outFile == "stdout" {
-			fmt.Print(out.header())
+			fmt.Print(out.header(""))
 			fmt.Print(out.body(""))
 		} else {
-			ioutil.WriteFile(outFile+".hpp", []byte(out.header()), 0644)
+			ioutil.WriteFile(outFile+".hpp", []byte(out.header(outFile+".hpp")), 0644)
 			ioutil.WriteFile(outFile+".cpp", []byte(out.body(outFile+".hpp")), 0644)
 			ioutil.WriteFile("modelmakerdefs.hpp", []byte(out.buildModelmakerDefsHeader()), 0644)
 			ioutil.WriteFile("modelmakerdefs.cpp", []byte(out.buildModelmakerDefsBody()), 0644)

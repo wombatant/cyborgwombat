@@ -17,6 +17,7 @@ package main
 
 import (
 	"strconv"
+	"strings"
 )
 
 type Out struct {
@@ -31,9 +32,7 @@ type Out struct {
 func NewCOut(namespace string) Out {
 	var out Out
 	out.namespace = namespace
-	out.hppPrefix = `//Generated Code
-
-#include <string>
+	out.hppPrefix = `#include <string>
 #include <sstream>
 #include <vector>
 #include <map>
@@ -124,8 +123,14 @@ func (me *Out) closeClass() {
 	me.writer += "\n\treturn obj;\n}\n\n"
 }
 
-func (me *Out) header() string {
-	return me.hppPrefix + me.hpp
+func (me *Out) header(fileName string) string {
+	n := strings.ToUpper(fileName)
+	n = strings.Replace(n, ".", "_", -1)
+	return `//Generated Code
+#ifndef ` + n + `
+#define ` + n + `
+` + me.hppPrefix + me.hpp + `
+#endif`
 }
 
 func (me *Out) body(headername string) string {
@@ -313,6 +318,9 @@ func (me *Out) buildWriter(v, jsonV, t string, index []string) string {
 func (me *Out) buildModelmakerDefsHeader() string {
 	out := `//Generated Code
 
+#ifndef MODELMAKERDEFS_HPP
+#define MODELMAKERDEFS_HPP
+
 #include <string>
 #include <json/json.h>
 
@@ -363,6 +371,8 @@ class unknown: public Model {
 };
 
 };
+
+#endif
 `
 	return out
 }

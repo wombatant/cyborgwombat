@@ -448,6 +448,10 @@ bool unknown::isDouble() {
 	return m_obj && json_object_get_type(m_obj) == json_type_double;
 }
 
+bool unknown::isString() {
+	return m_obj && json_object_get_type(m_obj) == json_type_string;
+}
+
 bool unknown::isObject() {
 	return m_obj && json_object_get_type(m_obj) == json_type_object;
 }

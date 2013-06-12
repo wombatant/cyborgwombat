@@ -102,13 +102,6 @@ func (me *Out) addClass(v string) {
 	me.hpp += "\n\t\tvoid load(string text);\n"
 	me.hpp += "\n\t\tbool load(json_object *obj);\n"
 	me.hpp += "\n\t\tjson_object* buildJsonObj();\n\n"
-	me.reader += "void " + v + `::load(string json) {
-	json_object *obj = json_tokener_parse(json.c_str());
-	load(obj);
-	json_object_put(obj);
-}
-
-`
 	me.constructor += v + "::" + v + "() {\n"
 	me.reader += "bool " + v + "::load(json_object *in) {"
 	me.writer += "json_object* " + v + `::buildJsonObj() {
@@ -173,9 +166,6 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 		is := "i"
 		for i := 0; i < depth; i++ {
 			is += "i"
-		}
-		if depth != 0 {
-			//code.Insert("json_object *obj" + strconv.Itoa(depth) + " = json_object_array_get_idx(obj" + strconv.Itoa(depth-1) + ", i);")
 		}
 		if index[0] == "array" {
 			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") == json_type_array")
@@ -335,6 +325,7 @@ class Model {
 	public:
 		bool loadFile(string path);
 		void writeFile(string path);
+		void load(string json);
 		string write();
 	protected:
 		virtual json_object* buildJsonObj() = 0;
@@ -391,9 +382,12 @@ bool Model::loadFile(string path) {
 	string json;
 	if (in.is_open()) {
 		while (in.good()) {
-			in >> json;
+			string s;
+			in >> s;
+			json += s;
 		}
 		in.close();
+		load(json);
 		return true;
 	}
 	return false;
@@ -405,6 +399,12 @@ void Model::writeFile(string path) {
 	string json = write();
 	out << json << "\n";
 	out.close();
+}
+
+void Model::load(string json) {
+	json_object *obj = json_tokener_parse(json.c_str());
+	load(obj);
+	json_object_put(obj);
 }
 
 string Model::write() {
@@ -429,7 +429,7 @@ bool unknown::load(json_object *obj) {
 }
 
 json_object* unknown::buildJsonObj() {
-	return m_obj;
+	return json_tokener_parse(json_object_to_json_string(m_obj));
 }
 
 bool unknown::loaded() {
@@ -476,35 +476,40 @@ void unknown::set(Model *v) {
 	json_object *obj = v->buildJsonObj();
 	json_object *old = m_obj;
 	m_obj = obj;
-	json_object_put(old);
+	if (old)
+		json_object_put(old);
 }
 
 void unknown::set(bool v) {
 	json_object *obj = json_object_new_boolean(v);
 	json_object *old = m_obj;
 	m_obj = obj;
-	json_object_put(old);
+	if (old)
+		json_object_put(old);
 }
 
 void unknown::set(int v) {
 	json_object *obj = json_object_new_int(v);
 	json_object *old = m_obj;
 	m_obj = obj;
-	json_object_put(old);
+	if (old)
+		json_object_put(old);
 }
 
 void unknown::set(double v) {
 	json_object *obj = json_object_new_double(v);
 	json_object *old = m_obj;
 	m_obj = obj;
-	json_object_put(old);
+	if (old)
+		json_object_put(old);
 }
 
 void unknown::set(string v) {
 	json_object *obj = json_object_new_string(v.c_str());
 	json_object *old = m_obj;
 	m_obj = obj;
-	json_object_put(old);
+	if (old)
+		json_object_put(old);
 }
 `
 	return out

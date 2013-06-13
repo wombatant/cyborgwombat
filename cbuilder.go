@@ -160,7 +160,8 @@ func (me *Out) buildConstructor(v, t string, index int) string {
 func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
 	if depth == 0 {
 		code.PushBlock()
-		code.Insert("json_object *obj" + strconv.Itoa(depth) + " = json_object_object_get(in, \"" + jsonV + "\");")
+		code.Insert("json_object *obj0 = json_object_object_get(in, \"" + jsonV + "\");")
+		code.PushIfBlock("obj0 != NULL")
 	}
 	if len(index) > 0 {
 		is := "i"
@@ -195,14 +196,7 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			code.PopBlock()
 		}
 	} else {
-		i := 0
-		if depth == 1 {
-			code.PushBlock()
-			code.Insert("json_object *obj" + strconv.Itoa(len(index)) + " = json_object_object_get(in, \"" + jsonV + "\");")
-			code.PushIfBlock("obj" + strconv.Itoa(len(index)) + " != NULL")
-		} else {
-			i += 2
-		}
+		code.PushBlock()
 		switch t { //type
 		case "int", "double":
 			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_" + t)
@@ -223,13 +217,11 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			code.Insert("this->" + v + sub + ".load(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		}
-		if depth == 1 {
-			code.PopBlock()
-			code.PopBlock()
-		}
+		code.PopBlock()
 	}
 
 	if depth == 0 {
+		code.PopBlock()
 		code.PopBlock()
 	}
 

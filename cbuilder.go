@@ -36,7 +36,7 @@ func NewCOut(namespace string) Out {
 #include <sstream>
 #include <vector>
 #include <map>
-#include <json/json.h>
+#include <jansson.h>
 #include "modelmakerdefs.hpp"
 
 
@@ -99,13 +99,12 @@ func (me *Out) addClass(v string) {
 	me.hpp += "\nclass " + v + ": public modelmaker::Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
-	me.hpp += "\n\t\tvoid load(string text);\n"
-	me.hpp += "\n\t\tbool load(json_object *obj);\n"
-	me.hpp += "\n\t\tjson_object* buildJsonObj();\n\n"
+	me.hpp += "\n\t\tbool load_json_t(json_t *obj);\n"
+	me.hpp += "\n\t\tjson_t* buildJsonObj();\n\n"
 	me.constructor += v + "::" + v + "() {\n"
-	me.reader += "bool " + v + "::load(json_object *in) {"
-	me.writer += "json_object* " + v + `::buildJsonObj() {
-	json_object *obj = json_object_new_object();`
+	me.reader += "bool " + v + "::load_json_t(json_t *in) {"
+	me.writer += "json_t* " + v + `::buildJsonObj() {
+	json_t *obj = json_object();`
 }
 
 func (me *Out) closeClass() {
@@ -160,8 +159,7 @@ func (me *Out) buildConstructor(v, t string, index int) string {
 func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
 	if depth == 0 {
 		code.PushBlock()
-		code.Insert("json_object *obj0 = json_object_object_get(in, \"" + jsonV + "\");")
-		code.PushIfBlock("obj0 != NULL")
+		code.Insert("json_t *obj0 = json_object_get(in, \"" + jsonV + "\");")
 	}
 	if len(index) > 0 {
 		is := "i"
@@ -169,17 +167,19 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			is += "i"
 		}
 		if index[0] == "array" {
-			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") == json_type_array")
-			code.Insert("unsigned int size = json_object_array_length(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_typeof(obj" + strconv.Itoa(depth) + ") == JSON_ARRAY")
+			code.Insert("unsigned int size = json_array_size(obj" + strconv.Itoa(depth) + ");")
 			code.Insert("this->" + v + sub + ".resize(size);")
 			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < size; " + is + "++")
-			code.Insert("json_object *obj" + strconv.Itoa(depth+1) + " = json_object_array_get_idx(obj" + strconv.Itoa(depth) + ", " + is + ");")
+			code.Insert("json_t *obj" + strconv.Itoa(depth+1) + " = json_array_get(obj" + strconv.Itoa(depth) + ", " + is + ");")
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0][:3] == "map" {
-			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_object_get_type(obj" + strconv.Itoa(depth) + ") == json_type_object")
-			code.PushPrefixBlock("json_object_object_foreach(obj" + strconv.Itoa(depth) + ", key, obj" + strconv.Itoa(depth+1) + ")")
+			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_typeof(obj" + strconv.Itoa(depth) + ") == JSON_OBJECT")
+			code.Insert("const char *key;")
+			code.Insert("json_t *obj" + strconv.Itoa(depth+1) + ";")
+			code.PushPrefixBlock("json_object_foreach(obj" + strconv.Itoa(depth) + ", key, obj" + strconv.Itoa(depth+1) + ")")
 			code.Insert(index[0][4:] + " " + is + ";")
 			code.PushBlock()
 			switch index[0][4:] {
@@ -198,30 +198,34 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 	} else {
 		code.PushBlock()
 		switch t { //type
-		case "int", "double":
-			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_" + t)
-			code.Insert("this->" + v + sub + " = json_object_get_" + t + "(obj" + strconv.Itoa(depth) + ");")
+		case "int":
+			code.PushIfBlock("json_is_integer(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = json_integer_value(obj" + strconv.Itoa(depth) + ");")
+			code.PopBlock()
+		case "double":
+			code.PushIfBlock("json_is_real(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = json_real_value" + t + "(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "bool":
-			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_boolean")
-			code.Insert("this->" + v + sub + " = json_object_get_boolean(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("json_is_boolean(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = json_is_true(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "string":
-			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_string")
-			code.Insert("this->" + v + sub + " = json_object_get_string(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("json_is_string(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = json_string_value(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "modelmaker::unknown":
-			code.Insert("this->" + v + sub + ".load(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("this->" + v + sub + ".load_json_t(obj" + strconv.Itoa(depth) + ");")
 		default:
-			code.PushIfBlock("json_object_get_type(obj" + strconv.Itoa(depth) + ") == " + "json_type_object")
-			code.Insert("this->" + v + sub + ".load(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("json_is_object(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + ".load_json_t(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		}
 		code.PopBlock()
 	}
 
 	if depth == 0 {
-		code.PopBlock()
+		code.Insert("json_decref(obj0);")
 		code.PopBlock()
 	}
 
@@ -238,13 +242,14 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 
 	if len(index) > depth {
 		if index[depth] == "array" {
-			code.Insert("json_object *out" + strconv.Itoa(len(index[depth:])) + " = json_object_new_array();")
+			code.Insert("json_t *out" + strconv.Itoa(len(index[depth:])) + " = json_array();")
 			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
 			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+1, index)
-			code.Insert("json_object_array_add(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			code.Insert("json_array_append(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			code.Insert("json_decref(out" + strconv.Itoa(len(index[depth:])) + ");")
 			code.PopBlock()
 		} else if index[depth][:3] == "map" {
-			code.Insert("json_object *out" + strconv.Itoa(len(index[depth:])) + " = json_object_new_object();")
+			code.Insert("json_t *out" + strconv.Itoa(len(index[depth:])) + " = json_object();")
 			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator " + ns + " = this->" + v + sub + ".begin(); " + ns + " != this->" + v + sub + ".end(); " + ns + "++")
 			switch index[depth][4:] {
 			case "bool":
@@ -256,20 +261,24 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 				code.Insert("s >> key;")
 			}
 			me.buildArrayWriter(code, t, v, sub+"["+ns+"->first]", depth+1, index)
-			code.Insert("json_object_object_add(out" + strconv.Itoa(len(index[depth:])) + ", key.c_str(), out" + strconv.Itoa(len(index[depth:])-1) + ");")
+			code.Insert("json_object_set(out" + strconv.Itoa(len(index[depth:])) + ", key.c_str(), out" + strconv.Itoa(len(index[depth:])-1) + ");")
+			code.Insert("json_decref(out" + strconv.Itoa(len(index[depth:])) + ");")
 			code.PopBlock()
 		}
 	} else {
 		switch t {
-		case "int", "double":
-			code.Insert("json_object *out0 = json_object_new_" + t + "(this->" + v + sub + ");")
+		case "int":
+			code.Insert("json_t *out0 = json_integer(this->" + v + sub + ");")
+		case "double":
+			code.Insert("json_t *out0 = json_real(this->" + v + sub + ");")
 		case "bool":
-			code.Insert("json_object *out0 = json_object_new_boolean(this->" + v + sub + ");")
+			code.Insert("json_t *out0 = json_boolean(this->" + v + sub + ");")
 		case "string":
-			code.Insert("json_object *out0 = json_object_new_string(this->" + v + sub + ".c_str());")
+			code.Insert("json_t *out0 = json_string(this->" + v + sub + ".c_str());")
 		default:
-			code.Insert("json_object *out0 = this->" + v + sub + ".buildJsonObj();")
+			code.Insert("json_t *out0 = this->" + v + sub + ".buildJsonObj();")
 		}
+		code.Insert("json_decref(out0);")
 	}
 }
 
@@ -279,19 +288,22 @@ func (me *Out) buildWriter(v, jsonV, t string, index []string) string {
 	out.PushBlock()
 	if len(index) > 0 {
 		me.buildArrayWriter(&out, t, v, "", 0, index)
-		out.Insert("json_object_object_add(obj, \"" + jsonV + "\", out" + strconv.Itoa(len(index)) + ");")
+		out.Insert("json_object_set(obj, \"" + jsonV + "\", out" + strconv.Itoa(len(index)) + ");")
 	} else {
 		switch t {
-		case "int", "double":
-			out.Insert("json_object *out0 = json_object_new_" + t + "(this->" + v + ");")
+		case "int":
+			out.Insert("json_t *out0 = json_integer(this->" + v + ");")
+		case "double":
+			out.Insert("json_t *out0 = json_real(this->" + v + ");")
 		case "bool":
-			out.Insert("json_object *out0 = json_object_new_boolean(this->" + v + ");")
+			out.Insert("json_t *out0 = json_boolean(this->" + v + ");")
 		case "string":
-			out.Insert("json_object *out0 = json_object_new_string(this->" + v + ".c_str());")
+			out.Insert("json_t *out0 = json_string(this->" + v + ".c_str());")
 		default:
-			out.Insert("json_object *out0 = this->" + v + ".buildJsonObj();")
+			out.Insert("json_t *out0 = this->" + v + ".buildJsonObj();")
 		}
-		out.Insert("json_object_object_add(obj, \"" + jsonV + "\", out0);")
+		out.Insert("json_object_set(obj, \"" + jsonV + "\", out0);")
+		out.Insert("json_decref(out0);")
 	}
 	out.PopBlock()
 	return out.String()
@@ -304,7 +316,7 @@ func (me *Out) buildModelmakerDefsHeader() string {
 #define MODELMAKERDEFS_HPP
 
 #include <string>
-#include <json/json.h>
+#include <jansson.h>
 
 using std::string;
 
@@ -320,20 +332,20 @@ class Model {
 		void load(string json);
 		string write();
 	protected:
-		virtual json_object* buildJsonObj() = 0;
-		virtual bool load(json_object *obj) = 0;
+		virtual json_t* buildJsonObj() = 0;
+		virtual bool load_json_t(json_t *obj) = 0;
 };
 
 class unknown: public Model {
 	private:
-		json_object *m_obj;
+		json_t *m_obj;
 	public:
 		unknown();
 		~unknown();
 
 		bool loaded();
-		bool load(json_object *obj);
-		json_object* buildJsonObj();
+		bool load_json_t(json_t *obj);
+		json_t* buildJsonObj();
 
 		bool toBool();
 		int toInt();
@@ -394,15 +406,17 @@ void Model::writeFile(string path) {
 }
 
 void Model::load(string json) {
-	json_object *obj = json_tokener_parse(json.c_str());
-	load(obj);
-	json_object_put(obj);
+	json_t *obj = json_loads(json.c_str(), 0, NULL);
+	load_json_t(obj);
+	json_decref(obj);
 }
 
 string Model::write() {
-	json_object *obj = buildJsonObj();
-	string out = json_object_to_json_string(obj);
-	json_object_put(obj);
+	json_t *obj = buildJsonObj();
+	char *tmp = json_dumps(obj, JSON_COMPACT);
+	string out = tmp;
+	free(tmp);
+	json_decref(obj);
 	return out;
 }
 
@@ -411,17 +425,16 @@ unknown::unknown() {
 }
 
 unknown::~unknown() {
-	json_object_put(m_obj);
+	json_decref(m_obj);
 }
 
-bool unknown::load(json_object *obj) {
-	//clone the input object because it will get deleted with its parent
-	m_obj = json_tokener_parse(json_object_to_json_string(obj));
-	return true;
+bool unknown::load_json_t(json_t *obj) {
+	m_obj = json_incref(obj);
+	return obj != 0;
 }
 
-json_object* unknown::buildJsonObj() {
-	return json_tokener_parse(json_object_to_json_string(m_obj));
+json_t* unknown::buildJsonObj() {
+	return json_incref(m_obj);
 }
 
 bool unknown::loaded() {
@@ -429,79 +442,84 @@ bool unknown::loaded() {
 }
 
 bool unknown::isBool() {
-	return m_obj && json_object_get_type(m_obj) == json_type_boolean;
+	return m_obj && json_is_boolean(m_obj);
 }
 
 bool unknown::isInt() {
-	return m_obj && json_object_get_type(m_obj) == json_type_int;
+	return m_obj && json_is_integer(m_obj);
 }
 
 bool unknown::isDouble() {
-	return m_obj && json_object_get_type(m_obj) == json_type_double;
+	return m_obj && json_is_real(m_obj);
 }
 
 bool unknown::isString() {
-	return m_obj && json_object_get_type(m_obj) == json_type_string;
+	return m_obj && json_is_string(m_obj);
 }
 
 bool unknown::isObject() {
-	return m_obj && json_object_get_type(m_obj) == json_type_object;
+	return m_obj && json_is_object(m_obj);
 }
 
 bool unknown::toBool() {
-	return json_object_get_boolean(m_obj);
+	return json_is_true(m_obj);
 }
 
 int unknown::toInt() {
-	return json_object_get_int(m_obj);
+	return json_integer_value(m_obj);
 }
 
 double unknown::toDouble() {
-	return json_object_get_double(m_obj);
+	return json_real_value(m_obj);
 }
 
 string unknown::toString() {
-	return json_object_get_string(m_obj);
+	return json_string_value(m_obj);
 }
 
 void unknown::set(Model *v) {
-	json_object *obj = v->buildJsonObj();
-	json_object *old = m_obj;
+	json_t *obj = v->buildJsonObj();
+	json_t *old = m_obj;
 	m_obj = obj;
-	if (old)
-		json_object_put(old);
+	if (old) {
+		json_decref(old);
+	}
 }
 
 void unknown::set(bool v) {
-	json_object *obj = json_object_new_boolean(v);
-	json_object *old = m_obj;
+	json_t *obj = json_boolean(v);
+	json_t *old = m_obj;
 	m_obj = obj;
-	if (old)
-		json_object_put(old);
+	if (old) {
+		json_decref(old);
+	}
 }
 
 void unknown::set(int v) {
-	json_object *obj = json_object_new_int(v);
-	json_object *old = m_obj;
+	json_t *obj = json_integer(v);
+	json_t *old = m_obj;
 	m_obj = obj;
-	if (old)
-		json_object_put(old);
+	if (old) {
+		json_decref(old);
+	}
 }
 
 void unknown::set(double v) {
-	json_object *obj = json_object_new_double(v);
-	json_object *old = m_obj;
+	json_t *obj = json_real(v);
+	json_t *old = m_obj;
 	m_obj = obj;
-	if (old)
-		json_object_put(old);
+	if (old) {
+		json_decref(old);
+	}
 }
 
 void unknown::set(string v) {
-	json_object *obj = json_object_new_string(v.c_str());
-	json_object *old = m_obj;
+	json_t *obj = json_string(v.c_str());
+	json_t *old = m_obj;
 	m_obj = obj;
-	if (old)
-		json_object_put(old);
+	if (old) {
+		json_decref(old);
+	}
 }
 `
 	return out

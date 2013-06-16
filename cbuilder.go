@@ -313,7 +313,7 @@ namespace modelmaker {
 class unknown;
 
 class Model {
-	friend unknown;
+	friend class unknown;
 	public:
 		bool loadFile(string path);
 		void writeFile(string path);

@@ -42,7 +42,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("modelmaker version 0.5")
+		fmt.Println("modelmaker version 0.6")
 		return
 	}
 	parseFile(*in, *out, *namespace)

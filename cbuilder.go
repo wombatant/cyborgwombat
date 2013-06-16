@@ -160,7 +160,6 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 	if depth == 0 {
 		code.PushBlock()
 		code.Insert("json_t *obj0 = json_object_get(in, \"" + jsonV + "\");")
-		code.PushIfBlock("obj0 != NULL")
 	}
 	if len(index) > 0 {
 		is := "i"
@@ -227,7 +226,6 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 
 	if depth == 0 {
 		code.Insert("json_decref(obj0);")
-		code.PopBlock()
 		code.PopBlock()
 	}
 
@@ -431,13 +429,12 @@ unknown::~unknown() {
 }
 
 bool unknown::load_json_t(json_t *obj) {
-	//clone the input object because it will get deleted with its parent
-	m_obj = json_loads(json_dumps(obj, JSON_COMPACT), 0, NULL);
-	return true;
+	m_obj = json_incref(obj);
+	return obj != 0;
 }
 
 json_t* unknown::buildJsonObj() {
-	return json_loads(json_dumps(m_obj, JSON_COMPACT), 0, NULL);
+	return json_incref(m_obj);
 }
 
 bool unknown::loaded() {

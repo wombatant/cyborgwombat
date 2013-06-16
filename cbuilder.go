@@ -341,6 +341,11 @@ class unknown: public Model {
 		json_t *m_obj;
 	public:
 		unknown();
+		unknown(Model* v);
+		unknown(bool v);
+		unknown(int v);
+		unknown(double v);
+		unknown(string v);
 		~unknown();
 
 		bool loaded();
@@ -422,6 +427,26 @@ string Model::write() {
 
 unknown::unknown() {
 	m_obj = 0;
+}
+
+unknown::unknown(Model *v) {
+	set(v);
+}
+
+unknown::unknown(bool v) {
+	set(v);
+}
+
+unknown::unknown(int v) {
+	set(v);
+}
+
+unknown::unknown(double v) {
+	set(v);
+}
+
+unknown::unknown(string v) {
+	set(v);
 }
 
 unknown::~unknown() {

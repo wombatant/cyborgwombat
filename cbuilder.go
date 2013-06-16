@@ -226,7 +226,7 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 	}
 
 	if depth == 0 {
-		code.Insert("json_decref(out0);")
+		code.Insert("json_decref(obj0);")
 		code.PopBlock()
 		code.PopBlock()
 	}
@@ -415,7 +415,9 @@ void Model::load(string json) {
 
 string Model::write() {
 	json_t *obj = buildJsonObj();
-	string out = json_dumps(obj, JSON_COMPACT);
+	char *tmp = json_dumps(obj, JSON_COMPACT);
+	string out = tmp;
+	free(tmp);
 	json_decref(obj);
 	return out;
 }

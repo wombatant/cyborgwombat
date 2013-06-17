@@ -246,7 +246,7 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
 			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+1, index)
 			code.Insert("json_array_append(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
-			code.Insert("json_decref(out" + strconv.Itoa(len(index[depth:])) + ");")
+			code.Insert("json_decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()
 		} else if index[depth][:3] == "map" {
 			code.Insert("json_t *out" + strconv.Itoa(len(index[depth:])) + " = json_object();")
@@ -262,7 +262,7 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 			}
 			me.buildArrayWriter(code, t, v, sub+"["+ns+"->first]", depth+1, index)
 			code.Insert("json_object_set(out" + strconv.Itoa(len(index[depth:])) + ", key.c_str(), out" + strconv.Itoa(len(index[depth:])-1) + ");")
-			code.Insert("json_decref(out" + strconv.Itoa(len(index[depth:])) + ");")
+			code.Insert("json_decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()
 		}
 	} else {
@@ -278,7 +278,6 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 		default:
 			code.Insert("json_t *out0 = this->" + v + sub + ".buildJsonObj();")
 		}
-		code.Insert("json_decref(out0);")
 	}
 }
 
@@ -289,6 +288,7 @@ func (me *Out) buildWriter(v, jsonV, t string, index []string) string {
 	if len(index) > 0 {
 		me.buildArrayWriter(&out, t, v, "", 0, index)
 		out.Insert("json_object_set(obj, \"" + jsonV + "\", out" + strconv.Itoa(len(index)) + ");")
+		out.Insert("json_decref(out" + strconv.Itoa(len(index)) + ");")
 	} else {
 		switch t {
 		case "int":
@@ -341,7 +341,7 @@ class unknown: public Model {
 		json_t *m_obj;
 	public:
 		unknown();
-		unknown(Model* v);
+		unknown(Model *v);
 		unknown(bool v);
 		unknown(int v);
 		unknown(double v);

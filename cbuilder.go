@@ -64,7 +64,7 @@ func (me *Out) buildTypeDec(t string, index []string) string {
 	out := ""
 	for i := 0; i < len(index); i++ {
 		if index[i] == "array" {
-			out += "vector<"
+			out += "vector< "
 			array += " >"
 		} else if index[i][:3] == "map" {
 			out += "map<" + index[i][4:] + ", "
@@ -191,6 +191,11 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 				code.Insert("s >> " + is + ";")
 			}
 			code.PopBlock()
+
+			//initialize value in map
+			code.Insert(me.buildTypeDec(t, index[1:]) + " val;")
+			code.Insert("this->" + v + sub + ".insert(make_pair(" + is + ", val));")
+
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
@@ -419,6 +424,8 @@ void Model::load(string json) {
 string Model::write() {
 	json_t *obj = buildJsonObj();
 	char *tmp = json_dumps(obj, JSON_COMPACT);
+	if (!tmp)
+		return "{}";
 	string out = tmp;
 	free(tmp);
 	json_decref(obj);

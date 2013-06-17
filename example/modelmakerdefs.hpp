@@ -1,31 +1,44 @@
 //Generated Code
 
+#ifndef MODELMAKERDEFS_HPP
+#define MODELMAKERDEFS_HPP
+
 #include <string>
-#include <json/json.h>
+#include <jansson.h>
 
 using std::string;
 
-namespace models {
+namespace modelmaker {
 
 class unknown;
 
 class Model {
-	friend unknown;
+	friend class unknown;
+	public:
+		bool loadFile(string path);
+		void writeFile(string path);
+		void load(string json);
+		string write();
 	protected:
-		virtual json_object* buildJsonObj() = 0;
-		virtual bool load(json_object *obj) = 0;
+		virtual json_t* buildJsonObj() = 0;
+		virtual bool load_json_t(json_t *obj) = 0;
 };
 
 class unknown: public Model {
 	private:
-		json_object *m_obj;
+		json_t *m_obj;
 	public:
 		unknown();
+		unknown(Model *v);
+		unknown(bool v);
+		unknown(int v);
+		unknown(double v);
+		unknown(string v);
 		~unknown();
 
 		bool loaded();
-		bool load(json_object *obj);
-		json_object* buildJsonObj();
+		bool load_json_t(json_t *obj);
+		json_t* buildJsonObj();
 
 		bool toBool();
 		int toInt();
@@ -46,3 +59,5 @@ class unknown: public Model {
 };
 
 };
+
+#endif

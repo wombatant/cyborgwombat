@@ -1,10 +1,11 @@
 //Generated Code
-
+#ifndef MODEL_HPP
+#define MODEL_HPP
 #include <string>
 #include <sstream>
 #include <vector>
 #include <map>
-#include <json/json.h>
+#include <jansson.h>
 #include "modelmakerdefs.hpp"
 
 
@@ -14,26 +15,24 @@ using std::map;
 
 namespace models {
 
-class Model1: public Model {
+class Model1: public modelmaker::Model {
 
 	public:
 
 		Model1();
 
-		void load(string text);
+		bool load_json_t(json_t *obj);
 
-		string write();
-
-		bool load(json_object *obj);
-
-		json_object* buildJsonObj();
+		json_t* buildJsonObj();
 
 		string field1;
-		unknown field2;
-		vector<int > field3;
-		vector<vector<string > > field4;
+		modelmaker::unknown field2;
+		vector< int > field3;
+		vector< vector< string > > field4;
 		map<string, string > field5;
 };
 
 }
 
+
+#endif

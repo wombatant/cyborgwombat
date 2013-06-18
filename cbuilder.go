@@ -67,7 +67,7 @@ func (me *Out) buildTypeDec(t string, index []string) string {
 			out += "vector< "
 			array += " >"
 		} else if index[i][:3] == "map" {
-			out += "map<" + index[i][4:] + ", "
+			out += "map< " + index[i][4:] + ", "
 			array += " >"
 		}
 	}
@@ -230,7 +230,6 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 	}
 
 	if depth == 0 {
-		code.Insert("json_decref(obj0);")
 		code.PopBlock()
 	}
 
@@ -255,7 +254,7 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 			code.PopBlock()
 		} else if index[depth][:3] == "map" {
 			code.Insert("json_t *out" + strconv.Itoa(len(index[depth:])) + " = json_object();")
-			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator " + ns + " = this->" + v + sub + ".begin(); " + ns + " != this->" + v + sub + ".end(); " + ns + "++")
+			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator " + ns + " = this->" + v + sub + ".begin(); " + ns + " != this->" + v + sub + ".end(); ++" + ns)
 			switch index[depth][4:] {
 			case "bool":
 				code.Insert("string key = " + ns + "->first ? \"true\" : \"false\";")

@@ -350,7 +350,7 @@ class unknown: public Model {
 		unknown(int v);
 		unknown(double v);
 		unknown(string v);
-		~unknown();
+		virtual ~unknown();
 
 		bool loaded();
 		bool load_json_t(json_t *obj);

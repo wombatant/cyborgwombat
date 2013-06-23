@@ -25,11 +25,11 @@ class Model1: public modelmaker::Model {
 
 		json_t* buildJsonObj();
 
-		string field1;
-		modelmaker::unknown field2;
-		vector< int > field3;
-		vector< vector< string > > field4;
-		map<string, string > field5;
+		string Field1;
+		modelmaker::unknown Field2;
+		vector< int > Field3;
+		vector< vector< string > > Field4;
+		map< string, string > Field5;
 };
 
 }

@@ -52,22 +52,27 @@ unknown::unknown() {
 }
 
 unknown::unknown(Model *v) {
+	m_obj = 0;
 	set(v);
 }
 
 unknown::unknown(bool v) {
+	m_obj = 0;
 	set(v);
 }
 
 unknown::unknown(int v) {
+	m_obj = 0;
 	set(v);
 }
 
 unknown::unknown(double v) {
+	m_obj = 0;
 	set(v);
 }
 
 unknown::unknown(string v) {
+	m_obj = 0;
 	set(v);
 }
 

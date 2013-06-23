@@ -80,14 +80,18 @@ func (me *Out) buildVar(v, t string, index []string) string {
 }
 
 func (me *Out) addVar(v string, index []string) {
+	jsonV := v
+	if len(v) > 0 && v[0] < 91 {
+		v = string(v[0]+32) + v[1:]
+	}
 	t := me.typeMap(index[len(index)-1])
 	index = index[:len(index)-1]
 	me.hpp += "\t\t" + me.buildVar(v, t, index) + "\n"
 	var reader CppCode
 	reader.tabs += "\t"
 	me.constructor += me.buildConstructor(v, t, len(index))
-	me.reader += me.buildReader(&reader, v, t, "", index, 0)
-	me.writer += me.buildWriter(v, t, index)
+	me.reader += me.buildReader(&reader, v, jsonV, t, "", index, 0)
+	me.writer += me.buildWriter(v, jsonV, t, index)
 }
 
 func (me *Out) addClass(v string) {
@@ -152,10 +156,10 @@ func (me *Out) buildConstructor(v, t string, index int) string {
 	return ""
 }
 
-func (me *Out) buildReader(code *CppCode, v, t, sub string, index []string, depth int) string {
+func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
 	if depth == 0 {
 		code.PushBlock()
-		code.Insert("json_t *obj0 = json_object_get(in, \"" + v + "\");")
+		code.Insert("json_t *obj0 = json_object_get(in, \"" + jsonV + "\");")
 	}
 	if len(index) > 0 {
 		is := "i"
@@ -168,7 +172,7 @@ func (me *Out) buildReader(code *CppCode, v, t, sub string, index []string, dept
 			code.Insert("this->" + v + sub + ".resize(size);")
 			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < size; " + is + "++")
 			code.Insert("json_t *obj" + strconv.Itoa(depth+1) + " = json_array_get(obj" + strconv.Itoa(depth) + ", " + is + ");")
-			me.buildReader(code, v, t, sub+"["+is+"]", index[1:], depth+1)
+			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0][:3] == "map" {
@@ -192,7 +196,7 @@ func (me *Out) buildReader(code *CppCode, v, t, sub string, index []string, dept
 			code.Insert(me.buildTypeDec(t, index[1:]) + " val;")
 			code.Insert("this->" + v + sub + ".insert(make_pair(" + is + ", val));")
 
-			me.buildReader(code, v, t, sub+"["+is+"]", index[1:], depth+1)
+			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
 		}
@@ -281,13 +285,13 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 	}
 }
 
-func (me *Out) buildWriter(v, t string, index []string) string {
+func (me *Out) buildWriter(v, jsonV, t string, index []string) string {
 	var out CppCode
 	out.tabs = "\t"
 	out.PushBlock()
 	if len(index) > 0 {
 		me.buildArrayWriter(&out, t, v, "", 0, index)
-		out.Insert("json_object_set(obj, \"" + v + "\", out" + strconv.Itoa(len(index)) + ");")
+		out.Insert("json_object_set(obj, \"" + jsonV + "\", out" + strconv.Itoa(len(index)) + ");")
 		out.Insert("json_decref(out" + strconv.Itoa(len(index)) + ");")
 	} else {
 		switch t {
@@ -302,7 +306,7 @@ func (me *Out) buildWriter(v, t string, index []string) string {
 		default:
 			out.Insert("json_t *out0 = this->" + v + ".buildJsonObj();")
 		}
-		out.Insert("json_object_set(obj, \"" + v + "\", out0);")
+		out.Insert("json_object_set(obj, \"" + jsonV + "\", out0);")
 		out.Insert("json_decref(out0);")
 	}
 	out.PopBlock()

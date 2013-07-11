@@ -20,7 +20,7 @@ import (
 	"strings"
 )
 
-type Out struct {
+type CppJansson struct {
 	hppPrefix   string
 	hpp         string
 	constructor string
@@ -29,8 +29,8 @@ type Out struct {
 	namespace   string
 }
 
-func NewCOut(namespace string) Out {
-	var out Out
+func NewCOut(namespace string) *CppJansson {
+	out := new(CppJansson)
 	out.namespace = namespace
 	out.hppPrefix = `#include <string>
 #include <sstream>
@@ -47,7 +47,7 @@ using std::map;
 	return out
 }
 
-func (me *Out) typeMap(t string) string {
+func (me *CppJansson) typeMap(t string) string {
 	switch t {
 	case "float", "float32", "float64", "double":
 		return "double"
@@ -59,7 +59,7 @@ func (me *Out) typeMap(t string) string {
 	return ""
 }
 
-func (me *Out) buildTypeDec(t string, index []string) string {
+func (me *CppJansson) buildTypeDec(t string, index []string) string {
 	array := ""
 	out := ""
 	for i := 0; i < len(index); i++ {
@@ -75,11 +75,11 @@ func (me *Out) buildTypeDec(t string, index []string) string {
 	return out
 }
 
-func (me *Out) buildVar(v, t string, index []string) string {
+func (me *CppJansson) buildVar(v, t string, index []string) string {
 	return me.buildTypeDec(t, index) + " " + v + ";"
 }
 
-func (me *Out) addVar(v string, index []string) {
+func (me *CppJansson) addVar(v string, index []string) {
 	jsonV := v
 	if len(v) > 0 && v[0] < 91 {
 		v = string(v[0]+32) + v[1:]
@@ -94,7 +94,7 @@ func (me *Out) addVar(v string, index []string) {
 	me.writer += me.buildWriter(v, jsonV, t, index)
 }
 
-func (me *Out) addClass(v string) {
+func (me *CppJansson) addClass(v string) {
 	me.hpp += "\nnamespace " + me.namespace + " {\n"
 	me.hpp += "\nclass " + v + ": public modelmaker::Model {\n"
 	me.hpp += "\n\tpublic:\n"
@@ -107,7 +107,7 @@ func (me *Out) addClass(v string) {
 	json_t *obj = json_object();`
 }
 
-func (me *Out) closeClass() {
+func (me *CppJansson) closeClass() {
 	me.hpp += "};\n\n"
 	me.hpp += "}\n\n"
 	me.constructor += "}\n\n"
@@ -115,7 +115,7 @@ func (me *Out) closeClass() {
 	me.writer += "\n\treturn obj;\n}\n\n"
 }
 
-func (me *Out) header(fileName string) string {
+func (me *CppJansson) header(fileName string) string {
 	n := strings.ToUpper(fileName)
 	n = strings.Replace(n, ".", "_", -1)
 	return `//Generated Code
@@ -125,7 +125,7 @@ func (me *Out) header(fileName string) string {
 #endif`
 }
 
-func (me *Out) body(headername string) string {
+func (me *CppJansson) body(headername string) string {
 	include := ""
 	if headername != "" {
 		include += `//Generated Code
@@ -140,11 +140,11 @@ using std::stringstream;
 	return include + me.constructor + me.reader + me.writer[:len(me.writer)-1]
 }
 
-func (me *Out) endsWithClose() bool {
+func (me *CppJansson) endsWithClose() bool {
 	return me.hpp[len(me.hpp)-3:] == "};\n"
 }
 
-func (me *Out) buildConstructor(v, t string, index int) string {
+func (me *CppJansson) buildConstructor(v, t string, index int) string {
 	if index < 1 {
 		switch t {
 		case "bool", "int", "double":
@@ -156,7 +156,7 @@ func (me *Out) buildConstructor(v, t string, index int) string {
 	return ""
 }
 
-func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
+func (me *CppJansson) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
 	if depth == 0 {
 		code.PushBlock()
 		code.Insert("json_t *obj0 = json_object_get(in, \"" + jsonV + "\");")
@@ -194,7 +194,7 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 
 			//initialize value in map
 			code.Insert(me.buildTypeDec(t, index[1:]) + " val;")
-			code.Insert("this->" + v + sub + ".insert(make_pair(" + is + ", val));")
+			code.Insert("this->" + v + sub + ".insert(std::make_pair(" + is + ", val));")
 
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
@@ -236,7 +236,7 @@ func (me *Out) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 	return code.String()
 }
 
-func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, index []string) {
+func (me *CppJansson) buildArrayWriter(code *CppCode, t, v, sub string, depth int, index []string) {
 	is := "i"
 	ns := "n"
 	for i := 0; i < depth; i++ {
@@ -285,7 +285,7 @@ func (me *Out) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 	}
 }
 
-func (me *Out) buildWriter(v, jsonV, t string, index []string) string {
+func (me *CppJansson) buildWriter(v, jsonV, t string, index []string) string {
 	var out CppCode
 	out.tabs = "\t"
 	out.PushBlock()
@@ -313,7 +313,7 @@ func (me *Out) buildWriter(v, jsonV, t string, index []string) string {
 	return out.String()
 }
 
-func (me *Out) buildModelmakerDefsHeader() string {
+func (me *CppJansson) buildModelmakerDefsHeader() string {
 	out := `//Generated Code
 
 #ifndef MODELMAKERDEFS_HPP
@@ -381,7 +381,7 @@ class unknown: public Model {
 	return out
 }
 
-func (me *Out) buildModelmakerDefsBody() string {
+func (me *CppJansson) buildModelmakerDefsBody() string {
 	out := `//Generated Code
 
 #include <fstream>

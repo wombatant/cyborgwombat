@@ -42,7 +42,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("modelmaker version 0.7")
+		fmt.Println("modelmaker version 0.7.3")
 		return
 	}
 	parseFile(*in, *out, *namespace)
@@ -84,10 +84,11 @@ func parseFile(path, outFile, namespace string) {
 			fmt.Print(out.header(""))
 			fmt.Print(out.body(""))
 		} else {
-			ioutil.WriteFile(outFile+".hpp", []byte(out.header(outFile+".hpp")), 0644)
-			ioutil.WriteFile(outFile+".cpp", []byte(out.body(outFile+".hpp")), 0644)
-			ioutil.WriteFile("modelmakerdefs.hpp", []byte(out.buildModelmakerDefsHeader()), 0644)
-			ioutil.WriteFile("modelmakerdefs.cpp", []byte(out.buildModelmakerDefsBody()), 0644)
+			cout := out.(*CppJansson)
+			ioutil.WriteFile(outFile+".hpp", []byte(cout.header(outFile+".hpp")), 0644)
+			ioutil.WriteFile(outFile+".cpp", []byte(cout.body(outFile+".hpp")), 0644)
+			ioutil.WriteFile("modelmakerdefs.hpp", []byte(cout.buildModelmakerDefsHeader()), 0644)
+			ioutil.WriteFile("modelmakerdefs.cpp", []byte(cout.buildModelmakerDefsBody()), 0644)
 		}
 	}
 }

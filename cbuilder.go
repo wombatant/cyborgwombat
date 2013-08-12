@@ -20,6 +20,11 @@ import (
 	"strings"
 )
 
+const (
+	USING_JANSSON = iota
+	USING_QT = iota
+)
+
 type CppJansson struct {
 	hppPrefix   string
 	hpp         string
@@ -27,20 +32,20 @@ type CppJansson struct {
 	reader      string
 	writer      string
 	namespace   string
+	lib         int
 }
 
-func NewCOut(namespace string) *CppJansson {
+func NewCOut(namespace string, lib int) *CppJansson {
 	out := new(CppJansson)
 	out.namespace = namespace
+	out.lib = lib
 	out.hppPrefix = `#include <string>
 #include <sstream>
 #include <vector>
 #include <map>
-#include <jansson.h>
 #include "modelmakerdefs.hpp"
 
 
-using std::string;
 using std::vector;
 using std::map;
 `
@@ -96,15 +101,16 @@ func (me *CppJansson) addVar(v string, index []string) {
 
 func (me *CppJansson) addClass(v string) {
 	me.hpp += "\nnamespace " + me.namespace + " {\n"
+	me.hpp += "\nusing modelmaker::string;\n"
 	me.hpp += "\nclass " + v + ": public modelmaker::Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
-	me.hpp += "\n\t\tbool load_json_t(json_t *obj);\n"
-	me.hpp += "\n\t\tjson_t* buildJsonObj();\n\n"
+	me.hpp += "\n\t\tbool loadJsonObj(modelmaker::JsonObj obj);\n"
+	me.hpp += "\n\t\tmodelmaker::JsonObjOut buildJsonObj();\n\n"
 	me.constructor += v + "::" + v + "() {\n"
-	me.reader += "bool " + v + "::load_json_t(json_t *in) {"
-	me.writer += "json_t* " + v + `::buildJsonObj() {
-	json_t *obj = json_object();`
+	me.reader += "bool " + v + "::loadJsonObj(modelmaker::JsonObj in) {"
+	me.writer += "modelmaker::JsonObjOut " + v + `::buildJsonObj() {
+	modelmaker::JsonObj obj = modelmaker::newJsonObj();`
 }
 
 func (me *CppJansson) closeClass() {
@@ -159,7 +165,7 @@ func (me *CppJansson) buildConstructor(v, t string, index int) string {
 func (me *CppJansson) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
 	if depth == 0 {
 		code.PushBlock()
-		code.Insert("json_t *obj0 = json_object_get(in, \"" + jsonV + "\");")
+		code.Insert("modelmaker::JsonVal obj0 = modelmaker::objRead(in, \"" + jsonV + "\");")
 	}
 	if len(index) > 0 {
 		is := "i"
@@ -167,21 +173,22 @@ func (me *CppJansson) buildReader(code *CppCode, v, jsonV, t, sub string, index 
 			is += "i"
 		}
 		if index[0] == "array" {
-			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_typeof(obj" + strconv.Itoa(depth) + ") == JSON_ARRAY")
-			code.Insert("unsigned int size = json_array_size(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && modelmaker::isArray(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("unsigned int size = modelmaker::arraySize(obj" + strconv.Itoa(depth) + ");")
 			code.Insert("this->" + v + sub + ".resize(size);")
 			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < size; " + is + "++")
-			code.Insert("json_t *obj" + strconv.Itoa(depth+1) + " = json_array_get(obj" + strconv.Itoa(depth) + ", " + is + ");")
+			code.Insert("modelmaker::JsonVal obj" + strconv.Itoa(depth+1) + " = modelmaker::arrayRead(obj" + strconv.Itoa(depth) + ", " + is + ");")
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0][:3] == "map" {
-			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && json_typeof(obj" + strconv.Itoa(depth) + ") == JSON_OBJECT")
-			code.Insert("const char *key;")
-			code.Insert("json_t *obj" + strconv.Itoa(depth+1) + ";")
-			code.PushPrefixBlock("json_object_foreach(obj" + strconv.Itoa(depth) + ", key, obj" + strconv.Itoa(depth+1) + ")")
+			code.PushIfBlock("obj" + strconv.Itoa(depth) + " != NULL && modelmaker::isObj(obj" + strconv.Itoa(depth) + ")")
+			//code.Insert("modelmaker::JsonVal obj" + strconv.Itoa(depth+1) + ";")
+			code.PushForBlock("modelmaker::JsonObjIterator it" + strconv.Itoa(depth+1) + " = modelmaker::iterator(obj" + strconv.Itoa(depth) + "); modelmaker::iteratorHasValue(it" + strconv.Itoa(depth+1) + "); " + "it" + strconv.Itoa(depth+1) + " = modelmaker::iteratorNext(obj" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
 			code.Insert(index[0][4:] + " " + is + ";")
+			code.Insert("modelmaker::JsonObjOut obj" + strconv.Itoa(depth+1) + " = modelmaker::iteratorValue(it" + strconv.Itoa(depth+1) + ");")
 			code.PushBlock()
+			code.Insert("std::string key = modelmaker::toStdString(modelmaker::iteratorKey(it" + strconv.Itoa(depth+1) + "));")
 			switch index[0][4:] {
 			case "bool":
 				code.Insert(is + " = key == \"true\";")
@@ -194,7 +201,7 @@ func (me *CppJansson) buildReader(code *CppCode, v, jsonV, t, sub string, index 
 
 			//initialize value in map
 			code.Insert(me.buildTypeDec(t, index[1:]) + " val;")
-			code.Insert("this->" + v + sub + ".insert(std::make_pair(" + is + ", val));")
+			code.Insert("this->" + v + sub + "[" + is + "] = val;")
 
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
@@ -204,26 +211,26 @@ func (me *CppJansson) buildReader(code *CppCode, v, jsonV, t, sub string, index 
 		code.PushBlock()
 		switch t { //type
 		case "int":
-			code.PushIfBlock("json_is_integer(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("this->" + v + sub + " = (int) json_integer_value(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("modelmaker::isInt(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = modelmaker::toInt(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "double":
-			code.PushIfBlock("json_is_real(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("this->" + v + sub + " = json_real_value" + t + "(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("modelmaker::isDouble(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = modelmaker::toDouble(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "bool":
-			code.PushIfBlock("json_is_boolean(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("this->" + v + sub + " = json_is_true(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("modelmaker::isBool(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = modelmaker::toBool(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "string":
-			code.PushIfBlock("json_is_string(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("this->" + v + sub + " = json_string_value(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("modelmaker::isString(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = modelmaker::toString(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "modelmaker::unknown":
-			code.Insert("this->" + v + sub + ".load_json_t(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
 		default:
-			code.PushIfBlock("json_is_object(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("this->" + v + sub + ".load_json_t(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("modelmaker::isObj(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		}
 		code.PopBlock()
@@ -246,14 +253,14 @@ func (me *CppJansson) buildArrayWriter(code *CppCode, t, v, sub string, depth in
 
 	if len(index) > depth {
 		if index[depth] == "array" {
-			code.Insert("json_t *out" + strconv.Itoa(len(index[depth:])) + " = json_array();")
+			code.Insert("modelmaker::JsonArray out" + strconv.Itoa(len(index[depth:])) + " = modelmaker::newJsonArray();")
 			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
 			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+1, index)
-			code.Insert("json_array_append(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
-			code.Insert("json_decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			code.Insert("modelmaker::arrayAdd(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			code.Insert("modelmaker::decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()
 		} else if index[depth][:3] == "map" {
-			code.Insert("json_t *out" + strconv.Itoa(len(index[depth:])) + " = json_object();")
+			code.Insert("modelmaker::JsonObj out" + strconv.Itoa(len(index[depth:])) + " = modelmaker::newJsonObj();")
 			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator " + ns + " = this->" + v + sub + ".begin(); " + ns + " != this->" + v + sub + ".end(); ++" + ns)
 			switch index[depth][4:] {
 			case "bool":
@@ -265,22 +272,22 @@ func (me *CppJansson) buildArrayWriter(code *CppCode, t, v, sub string, depth in
 				code.Insert("s >> key;")
 			}
 			me.buildArrayWriter(code, t, v, sub+"["+ns+"->first]", depth+1, index)
-			code.Insert("json_object_set(out" + strconv.Itoa(len(index[depth:])) + ", key.c_str(), out" + strconv.Itoa(len(index[depth:])-1) + ");")
-			code.Insert("json_decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			code.Insert("modelmaker::objSet(out" + strconv.Itoa(len(index[depth:])) + ", key, out" + strconv.Itoa(len(index[depth:])-1) + ");")
+			code.Insert("modelmaker::decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()
 		}
 	} else {
 		switch t {
 		case "int":
-			code.Insert("json_t *out0 = json_integer(this->" + v + sub + ");")
+			code.Insert("modelmaker::JsonVal out0 = modelmaker::toJsonVal(this->" + v + sub + ");")
 		case "double":
-			code.Insert("json_t *out0 = json_real(this->" + v + sub + ");")
+			code.Insert("modelmaker::JsonVal out0 = modelmaker::toJsonVal(this->" + v + sub + ");")
 		case "bool":
-			code.Insert("json_t *out0 = json_boolean(this->" + v + sub + ");")
+			code.Insert("modelmaker::JsonVal out0 = modelmaker::toJsonVal(this->" + v + sub + ");")
 		case "string":
-			code.Insert("json_t *out0 = json_string(this->" + v + sub + ".c_str());")
+			code.Insert("modelmaker::JsonVal out0 = modelmaker::toJsonVal(this->" + v + sub + ");")
 		default:
-			code.Insert("json_t *out0 = this->" + v + sub + ".buildJsonObj();")
+			code.Insert("modelmaker::JsonVal out0 = modelmaker::toJsonVal(this->" + v + sub + ".buildJsonObj());")
 		}
 	}
 }
@@ -291,58 +298,332 @@ func (me *CppJansson) buildWriter(v, jsonV, t string, index []string) string {
 	out.PushBlock()
 	if len(index) > 0 {
 		me.buildArrayWriter(&out, t, v, "", 0, index)
-		out.Insert("json_object_set(obj, \"" + jsonV + "\", out" + strconv.Itoa(len(index)) + ");")
-		out.Insert("json_decref(out" + strconv.Itoa(len(index)) + ");")
+		out.Insert("modelmaker::objSet(obj, \"" + jsonV + "\", out" + strconv.Itoa(len(index)) + ");")
+		out.Insert("modelmaker::decref(out" + strconv.Itoa(len(index)) + ");")
 	} else {
 		switch t {
 		case "int":
-			out.Insert("json_t *out0 = json_integer(this->" + v + ");")
+			out.Insert("modelmaker::JsonVal out0 = modelmaker::toJsonVal(this->" + v + ");")
 		case "double":
-			out.Insert("json_t *out0 = json_real(this->" + v + ");")
+			out.Insert("modelmaker::JsonVal out0 = modelmaker::toJsonVal(this->" + v + ");")
 		case "bool":
-			out.Insert("json_t *out0 = json_boolean(this->" + v + ");")
+			out.Insert("modelmaker::JsonVal out0 = modelmaker::toJsonVal(this->" + v + ");")
 		case "string":
-			out.Insert("json_t *out0 = json_string(this->" + v + ".c_str());")
+			out.Insert("modelmaker::JsonVal out0 = modelmaker::toJsonVal(this->" + v + ");")
 		default:
-			out.Insert("json_t *out0 = this->" + v + ".buildJsonObj();")
+			out.Insert("modelmaker::JsonVal out0 = modelmaker::toJsonVal(this->" + v + ".buildJsonObj());")
 		}
-		out.Insert("json_object_set(obj, \"" + jsonV + "\", out0);")
-		out.Insert("json_decref(out0);")
+		out.Insert("modelmaker::objSet(obj, \"" + jsonV + "\", out0);")
+		out.Insert("modelmaker::decref(out0);")
 	}
 	out.PopBlock()
 	return out.String()
 }
 
 func (me *CppJansson) buildModelmakerDefsHeader() string {
+	using := ""
+	if me.lib == USING_QT {
+		using = "USING_QT"
+	} else {
+		using = "USING_JANSSON"
+	}
 	out := `//Generated Code
 
 #ifndef MODELMAKERDEFS_HPP
 #define MODELMAKERDEFS_HPP
 
+#define ` + using + `
+
+#include <string>
+
+#ifdef USING_QT
+#include <QString>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonValue>
+#else
 #include <string>
 #include <jansson.h>
-
-using std::string;
+#endif
 
 namespace modelmaker {
+
+#ifdef USING_QT
+typedef QJsonObject& JsonObj;
+typedef QJsonValue&  JsonVal;
+typedef QJsonArray&  JsonArray;
+
+typedef QJsonObject  JsonObjOut;
+typedef QJsonValue   JsonValOut;
+typedef QJsonArray   JsonArrayOut;
+
+typedef QJsonObject::iterator JsonObjIterator;
+typedef QString               JsonObjIteratorKey;
+typedef QJsonValueRef         JsonObjIteratorVal;
+
+typedef QString string;
+
+#else
+
+typedef json_t* JsonObj;
+typedef json_t* JsonVal;
+typedef json_t* JsonArray;
+
+typedef json_t* JsonObjOut;
+typedef json_t* JsonValOut;
+typedef json_t* JsonArrayOut;
+
+typedef const char* JsonObjIterator;
+typedef const char* JsonObjIteratorKey;
+typedef json_t*     JsonObjIteratorVal;
+
+typedef std::string string;
+#endif
+
+//string ops
+std::string toStdString(string str);
+const char* toCString(string str);
+
+
+JsonObjOut read(const char *json);
+
+int toInt(JsonVal);
+double toDouble(JsonVal);
+bool toBool(JsonVal);
+string toString(JsonVal);
+JsonArrayOut toArray(JsonVal);
+JsonObjOut toObj(JsonVal);
+
+JsonValOut toJsonVal(int);
+JsonValOut toJsonVal(double);
+JsonValOut toJsonVal(bool);
+JsonValOut toJsonVal(string);
+JsonValOut toJsonVal(JsonArray);
+JsonValOut toJsonVal(JsonObj);
+
+
+//value methods
+
+bool isBool(JsonVal);
+bool isInt(JsonVal);
+bool isDouble(JsonVal);
+bool isString(JsonVal);
+bool isArray(JsonVal);
+bool isObj(JsonVal);
+
+JsonObj incref(JsonObj);
+JsonVal incref(JsonVal);
+JsonArray incref(JsonArray);
+
+void decref(JsonObj);
+void decref(JsonVal);
+void decref(JsonArray);
+
+
+JsonArrayOut newJsonArray();
+
+void arrayAdd(JsonArray, JsonObj);
+void arrayAdd(JsonArray, JsonVal);
+void arrayAdd(JsonArray, JsonArray);
+
+int arraySize(JsonArray);
+
+JsonValOut arrayRead(JsonArray, int);
+
+
+JsonObjOut newJsonObj();
+
+void objSet(JsonObj, string, JsonObj);
+void objSet(JsonObj, string, JsonVal);
+void objSet(JsonObj, string, JsonArray);
+
+JsonValOut objRead(JsonObj, string);
+
+
+JsonObjIterator iterator(JsonObj);
+JsonObjIterator iteratorNext(JsonObj, JsonObjIterator);
+JsonObjIteratorKey iteratorKey(JsonObjIterator);
+JsonObjIteratorVal iteratorValue(JsonObjIterator);
+bool iteratorHasValue(JsonObjIterator i);
+
+
+
+
+#ifdef USING_QT
+
+#else
+
+inline std::string toStdString(string str) {
+	return str;
+}
+
+inline const char* toCString(string str) {
+	return str.c_str();
+}
+
+
+inline JsonObjOut read(const char *json) {
+	return json_loads(json, 0, NULL);
+}
+
+//value methods
+
+inline int toInt(JsonVal v) {
+	return (int) json_integer_value(v);
+}
+
+inline double toDouble(JsonVal v) {
+	return (double) json_real_value(v);
+}
+
+inline bool toBool(JsonVal v) {
+	return json_is_true(v);
+}
+
+inline string toString(JsonVal v) {
+	return json_string_value(v);
+}
+
+inline JsonArray toArray(JsonVal v) {
+	return v;
+}
+
+inline JsonObj toObj(JsonVal v) {
+	return v;
+}
+
+
+inline JsonVal toJsonVal(int v) {
+	return json_integer(v);
+}
+
+inline JsonVal toJsonVal(double v) {
+	return json_real(v);
+}
+
+inline JsonVal toJsonVal(bool v) {
+	return json_boolean(v);
+}
+
+inline JsonVal toJsonVal(string v) {
+	return json_string(v.c_str());
+}
+
+inline JsonVal toJsonVal(JsonArray v) {
+	return v;
+}
+
+
+inline bool isBool(JsonVal v) {
+	return json_is_boolean(v);
+}
+
+inline bool isInt(JsonVal v) {
+	return json_is_integer(v);
+}
+
+inline bool isDouble(JsonVal v) {
+	return json_is_real(v);
+}
+
+inline bool isString(JsonVal v) {
+	return json_is_string(v);
+}
+
+inline bool isArray(JsonVal v) {
+	return json_is_array(v);
+}
+
+inline bool isObj(JsonVal v) {
+	return json_is_object(v);
+}
+
+inline JsonVal incref(JsonVal v) {
+	return json_incref(v);
+}
+
+inline void decref(JsonVal v) {
+	json_decref(v);
+}
+
+//array methods
+
+inline JsonArrayOut newJsonArray() {
+	return json_array();
+}
+
+inline void arrayAdd(JsonArray a, JsonVal v) {
+	json_array_append(a, v);
+}
+
+inline JsonVal arrayRead(JsonArray a, int i) {
+	return json_array_get(a, i);
+}
+
+inline int arraySize(JsonArray a) {
+	return json_array_size(a);
+}
+
+//object methods
+
+inline JsonObjOut newJsonObj() {
+	return json_object();
+}
+
+inline void objSet(JsonObj o, string k, JsonVal v) {
+	json_object_set(o, k.c_str(), v);
+}
+
+inline JsonVal objRead(JsonObj o, string k) {
+	return json_object_get(o, k.c_str());
+}
+
+
+inline JsonObjIterator iterator(JsonObj o) {
+	return json_object_iter_key(json_object_iter(o));
+}
+
+inline JsonObjIterator iteratorNext(JsonObj o, JsonObjIterator i) {
+	return json_object_iter_key(json_object_iter_next(o, json_object_key_to_iter(i)));
+}
+
+inline JsonObjIteratorKey iteratorKey(JsonObjIterator i) {
+	return i;
+}
+
+inline JsonObjIteratorVal iteratorValue(JsonObjIterator i) {
+	return json_object_iter_value(json_object_key_to_iter(i));
+}
+
+inline bool iteratorHasValue(JsonObjIterator i) {
+	return i;
+}
+
+#endif
+
+}
+
+namespace modelmaker {
+
+using std::string;
 
 class unknown;
 
 class Model {
 	friend class unknown;
 	public:
-		bool loadFile(string path);
-		void writeFile(string path);
+		bool loadFile(std::string path);
+		void writeFile(std::string path);
 		void load(string json);
 		string write();
 	protected:
-		virtual json_t* buildJsonObj() = 0;
-		virtual bool load_json_t(json_t *obj) = 0;
+		virtual modelmaker::JsonObjOut buildJsonObj() = 0;
+		virtual bool loadJsonObj(modelmaker::JsonObj obj) = 0;
 };
 
 class unknown: public Model {
 	private:
-		json_t *m_obj;
+		modelmaker::JsonObj m_obj;
 	public:
 		unknown();
 		unknown(Model *v);
@@ -353,8 +634,8 @@ class unknown: public Model {
 		virtual ~unknown();
 
 		bool loaded();
-		bool load_json_t(json_t *obj);
-		json_t* buildJsonObj();
+		bool loadJsonObj(modelmaker::JsonObj obj);
+		modelmaker::JsonObjOut buildJsonObj();
 
 		bool toBool();
 		int toInt();
@@ -391,7 +672,7 @@ using namespace modelmaker;
 
 bool Model::loadFile(string path) {
 	std::ifstream in;
-	in.open(path.c_str());
+	in.open(modelmaker::toCString(path));
 	string json;
 	if (in.is_open()) {
 		while (in.good()) {
@@ -408,26 +689,26 @@ bool Model::loadFile(string path) {
 
 void Model::writeFile(string path) {
 	std::ofstream out;
-	out.open(path.c_str());
+	out.open(modelmaker::toCString(path));
 	string json = write();
 	out << json << "\n";
 	out.close();
 }
 
 void Model::load(string json) {
-	json_t *obj = json_loads(json.c_str(), 0, NULL);
-	load_json_t(obj);
-	json_decref(obj);
+	modelmaker::JsonObjOut obj = modelmaker::read(modelmaker::toCString(json));
+	loadJsonObj(obj);
+	modelmaker::decref(obj);
 }
 
 string Model::write() {
-	json_t *obj = buildJsonObj();
+	modelmaker::JsonVal obj = buildJsonObj();
 	char *tmp = json_dumps(obj, JSON_COMPACT);
 	if (!tmp)
 		return "{}";
 	string out = tmp;
 	free(tmp);
-	json_decref(obj);
+	modelmaker::decref(obj);
 	return out;
 }
 
@@ -461,16 +742,16 @@ unknown::unknown(string v) {
 }
 
 unknown::~unknown() {
-	json_decref(m_obj);
+	modelmaker::decref(m_obj);
 }
 
-bool unknown::load_json_t(json_t *obj) {
-	m_obj = json_incref(obj);
+bool unknown::loadJsonObj(modelmaker::JsonObj obj) {
+	m_obj = modelmaker::incref(obj);
 	return obj != 0;
 }
 
-json_t* unknown::buildJsonObj() {
-	return json_incref(m_obj);
+modelmaker::JsonObjOut unknown::buildJsonObj() {
+	return modelmaker::incref(m_obj);
 }
 
 bool unknown::loaded() {
@@ -478,83 +759,83 @@ bool unknown::loaded() {
 }
 
 bool unknown::isBool() {
-	return m_obj && json_is_boolean(m_obj);
+	return m_obj && modelmaker::isBool(m_obj);
 }
 
 bool unknown::isInt() {
-	return m_obj && json_is_integer(m_obj);
+	return m_obj && modelmaker::isInt(m_obj);
 }
 
 bool unknown::isDouble() {
-	return m_obj && json_is_real(m_obj);
+	return m_obj && modelmaker::isDouble(m_obj);
 }
 
 bool unknown::isString() {
-	return m_obj && json_is_string(m_obj);
+	return m_obj && modelmaker::isString(m_obj);
 }
 
 bool unknown::isObject() {
-	return m_obj && json_is_object(m_obj);
+	return m_obj && modelmaker::isObj(m_obj);
 }
 
 bool unknown::toBool() {
-	return json_is_true(m_obj);
+	return modelmaker::toBool(m_obj);
 }
 
 int unknown::toInt() {
-	return json_integer_value(m_obj);
+	return modelmaker::toInt(m_obj);
 }
 
 double unknown::toDouble() {
-	return json_real_value(m_obj);
+	return modelmaker::toDouble(m_obj);
 }
 
 string unknown::toString() {
-	return json_string_value(m_obj);
+	return modelmaker::toString(m_obj);
 }
 
 void unknown::set(Model *v) {
-	json_t *obj = v->buildJsonObj();
-	json_t *old = m_obj;
+	modelmaker::JsonVal obj = modelmaker::toJsonVal(v->buildJsonObj());
+	modelmaker::JsonVal old = m_obj;
 	m_obj = obj;
 	if (old) {
-		json_decref(old);
+		modelmaker::decref(old);
 	}
 }
 
 void unknown::set(bool v) {
-	json_t *obj = json_boolean(v);
-	json_t *old = m_obj;
+	modelmaker::JsonVal obj = modelmaker::toJsonVal(v);
+	modelmaker::JsonVal old = m_obj;
 	m_obj = obj;
 	if (old) {
-		json_decref(old);
+		modelmaker::decref(old);
 	}
 }
 
 void unknown::set(int v) {
-	json_t *obj = json_integer(v);
-	json_t *old = m_obj;
+	modelmaker::JsonVal obj = modelmaker::toJsonVal(v);
+	modelmaker::JsonVal old = m_obj;
 	m_obj = obj;
 	if (old) {
-		json_decref(old);
+		modelmaker::decref(old);
 	}
 }
 
 void unknown::set(double v) {
-	json_t *obj = json_real(v);
-	json_t *old = m_obj;
+	modelmaker::JsonVal obj = modelmaker::toJsonVal(v);
+	modelmaker::JsonVal old = m_obj;
 	m_obj = obj;
 	if (old) {
-		json_decref(old);
+		modelmaker::decref(old);
 	}
 }
 
 void unknown::set(string v) {
-	json_t *obj = json_string(v.c_str());
-	json_t *old = m_obj;
+	modelmaker::JsonVal obj = modelmaker::toJsonVal(v);
+	modelmaker::JsonVal old = m_obj;
 	m_obj = obj;
 	if (old) {
-		json_decref(old);
+		modelmaker::decref(old);
 	}
 }
 `

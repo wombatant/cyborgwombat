@@ -25,7 +25,7 @@ const (
 	USING_QT = iota
 )
 
-type CppJansson struct {
+type Cpp struct {
 	hppPrefix   string
 	hpp         string
 	constructor string
@@ -35,8 +35,8 @@ type CppJansson struct {
 	lib         int
 }
 
-func NewCOut(namespace string, lib int) *CppJansson {
-	out := new(CppJansson)
+func NewCOut(namespace string, lib int) *Cpp {
+	out := new(Cpp)
 	out.namespace = namespace
 	out.lib = lib
 	out.hppPrefix = `#include <string>
@@ -52,7 +52,7 @@ using std::map;
 	return out
 }
 
-func (me *CppJansson) typeMap(t string) string {
+func (me *Cpp) typeMap(t string) string {
 	switch t {
 	case "float", "float32", "float64", "double":
 		return "double"
@@ -64,7 +64,7 @@ func (me *CppJansson) typeMap(t string) string {
 	return ""
 }
 
-func (me *CppJansson) buildTypeDec(t string, index []string) string {
+func (me *Cpp) buildTypeDec(t string, index []string) string {
 	array := ""
 	out := ""
 	for i := 0; i < len(index); i++ {
@@ -80,11 +80,11 @@ func (me *CppJansson) buildTypeDec(t string, index []string) string {
 	return out
 }
 
-func (me *CppJansson) buildVar(v, t string, index []string) string {
+func (me *Cpp) buildVar(v, t string, index []string) string {
 	return me.buildTypeDec(t, index) + " " + v + ";"
 }
 
-func (me *CppJansson) addVar(v string, index []string) {
+func (me *Cpp) addVar(v string, index []string) {
 	jsonV := v
 	if len(v) > 0 && v[0] < 91 {
 		v = string(v[0]+32) + v[1:]
@@ -99,7 +99,7 @@ func (me *CppJansson) addVar(v string, index []string) {
 	me.writer += me.buildWriter(v, jsonV, t, index)
 }
 
-func (me *CppJansson) addClass(v string) {
+func (me *Cpp) addClass(v string) {
 	me.hpp += "\nnamespace " + me.namespace + " {\n"
 	me.hpp += "\nusing modelmaker::string;\n"
 	me.hpp += "\nclass " + v + ": public modelmaker::Model {\n"
@@ -113,7 +113,7 @@ func (me *CppJansson) addClass(v string) {
 	modelmaker::JsonObj obj = modelmaker::newJsonObj();`
 }
 
-func (me *CppJansson) closeClass() {
+func (me *Cpp) closeClass() {
 	me.hpp += "};\n\n"
 	me.hpp += "}\n\n"
 	me.constructor += "}\n\n"
@@ -121,7 +121,7 @@ func (me *CppJansson) closeClass() {
 	me.writer += "\n\treturn obj;\n}\n\n"
 }
 
-func (me *CppJansson) header(fileName string) string {
+func (me *Cpp) header(fileName string) string {
 	n := strings.ToUpper(fileName)
 	n = strings.Replace(n, ".", "_", -1)
 	return `//Generated Code
@@ -131,7 +131,7 @@ func (me *CppJansson) header(fileName string) string {
 #endif`
 }
 
-func (me *CppJansson) body(headername string) string {
+func (me *Cpp) body(headername string) string {
 	include := ""
 	if headername != "" {
 		include += `//Generated Code
@@ -146,11 +146,11 @@ using std::stringstream;
 	return include + me.constructor + me.reader + me.writer[:len(me.writer)-1]
 }
 
-func (me *CppJansson) endsWithClose() bool {
+func (me *Cpp) endsWithClose() bool {
 	return me.hpp[len(me.hpp)-3:] == "};\n"
 }
 
-func (me *CppJansson) buildConstructor(v, t string, index int) string {
+func (me *Cpp) buildConstructor(v, t string, index int) string {
 	if index < 1 {
 		switch t {
 		case "bool", "int", "double":
@@ -162,7 +162,7 @@ func (me *CppJansson) buildConstructor(v, t string, index int) string {
 	return ""
 }
 
-func (me *CppJansson) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
+func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
 	if depth == 0 {
 		code.PushBlock()
 		code.Insert("modelmaker::JsonVal obj0 = modelmaker::objRead(in, \"" + jsonV + "\");")
@@ -243,7 +243,7 @@ func (me *CppJansson) buildReader(code *CppCode, v, jsonV, t, sub string, index 
 	return code.String()
 }
 
-func (me *CppJansson) buildArrayWriter(code *CppCode, t, v, sub string, depth int, index []string) {
+func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, index []string) {
 	is := "i"
 	ns := "n"
 	for i := 0; i < depth; i++ {
@@ -292,7 +292,7 @@ func (me *CppJansson) buildArrayWriter(code *CppCode, t, v, sub string, depth in
 	}
 }
 
-func (me *CppJansson) buildWriter(v, jsonV, t string, index []string) string {
+func (me *Cpp) buildWriter(v, jsonV, t string, index []string) string {
 	var out CppCode
 	out.tabs = "\t"
 	out.PushBlock()
@@ -320,7 +320,7 @@ func (me *CppJansson) buildWriter(v, jsonV, t string, index []string) string {
 	return out.String()
 }
 
-func (me *CppJansson) buildModelmakerDefsHeader() string {
+func (me *Cpp) buildModelmakerDefsHeader() string {
 	using := ""
 	if me.lib == USING_QT {
 		using = "USING_QT"
@@ -662,7 +662,7 @@ class unknown: public Model {
 	return out
 }
 
-func (me *CppJansson) buildModelmakerDefsBody() string {
+func (me *Cpp) buildModelmakerDefsBody() string {
 	out := `//Generated Code
 
 #include <fstream>

@@ -83,7 +83,7 @@ func parseFile(path, outFile, namespace string) {
 			fmt.Print(out.header(""))
 			fmt.Print(out.body(""))
 		} else {
-			cout := out.(*CppJansson)
+			cout := out.(*Cpp)
 			ioutil.WriteFile(outFile+".hpp", []byte(cout.header(outFile+".hpp")), 0644)
 			ioutil.WriteFile(outFile+".cpp", []byte(cout.body(outFile+".hpp")), 0644)
 			ioutil.WriteFile("modelmakerdefs.hpp", []byte(cout.buildModelmakerDefsHeader()), 0644)

@@ -72,7 +72,7 @@ func parseFile(path, outFile, namespace string) {
 	}
 
 	var p Parser
-	p.out = NewCOut(namespace, USING_JANSSON)
+	p.out = NewCOut(namespace, USING_QT)
 	out, err := p.parse(tokens)
 	if err != nil {
 		println(err)

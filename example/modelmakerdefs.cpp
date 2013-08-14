@@ -3,20 +3,21 @@
 #include <fstream>
 #include "modelmakerdefs.hpp"
 
-using namespace modelmaker;
+using namespace models;
+using namespace models::modelmaker;
 
 bool Model::loadFile(string path) {
 	std::ifstream in;
-	in.open(path.c_str());
-	string json;
+	in.open(modelmaker::toCString(path));
+	std::string json;
 	if (in.is_open()) {
 		while (in.good()) {
-			string s;
+			std::string s;
 			in >> s;
 			json += s;
 		}
 		in.close();
-		load(json);
+		load(modelmaker::toString(json));
 		return true;
 	}
 	return false;
@@ -24,152 +25,167 @@ bool Model::loadFile(string path) {
 
 void Model::writeFile(string path) {
 	std::ofstream out;
-	out.open(path.c_str());
-	string json = write();
+	out.open(modelmaker::toCString(path));
+	std::string json = modelmaker::toStdString(write());
 	out << json << "\n";
 	out.close();
 }
 
 void Model::load(string json) {
-	json_t *obj = json_loads(json.c_str(), 0, NULL);
-	load_json_t(obj);
-	json_decref(obj);
+	modelmaker::JsonValOut obj = modelmaker::read(modelmaker::toCString(json));
+	loadJsonObj(obj);
+	modelmaker::decref(obj);
 }
 
 string Model::write() {
-	json_t *obj = buildJsonObj();
-	char *tmp = json_dumps(obj, JSON_COMPACT);
-	if (!tmp)
-		return "{}";
-	string out = tmp;
-	free(tmp);
-	json_decref(obj);
-	return out;
+	modelmaker::JsonValOut val = buildJsonObj();
+	modelmaker::JsonObjOut obj = modelmaker::toObj(val);
+	return modelmaker::write(obj);
 }
 
 unknown::unknown() {
+#ifndef USING_QT
 	m_obj = 0;
+#endif
 }
 
 unknown::unknown(Model *v) {
+#ifndef USING_QT
 	m_obj = 0;
+#endif
 	set(v);
 }
 
 unknown::unknown(bool v) {
+#ifndef USING_QT
 	m_obj = 0;
+#endif
 	set(v);
 }
 
 unknown::unknown(int v) {
+#ifndef USING_QT
 	m_obj = 0;
+#endif
 	set(v);
 }
 
 unknown::unknown(double v) {
+#ifndef USING_QT
 	m_obj = 0;
+#endif
 	set(v);
 }
 
 unknown::unknown(string v) {
+#ifndef USING_QT
 	m_obj = 0;
+#endif
 	set(v);
 }
 
 unknown::~unknown() {
-	json_decref(m_obj);
+	modelmaker::decref(m_obj);
 }
 
-bool unknown::load_json_t(json_t *obj) {
-	m_obj = json_incref(obj);
-	return obj != 0;
+bool unknown::loadJsonObj(modelmaker::JsonVal obj) {
+#ifdef USING_JANSSON
+	m_obj = modelmaker::incref(obj);
+#else
+	m_obj = obj;
+#endif
+	return !modelmaker::isNull(obj);
 }
 
-json_t* unknown::buildJsonObj() {
-	return json_incref(m_obj);
+modelmaker::JsonValOut unknown::buildJsonObj() {
+#ifdef USING_JANSSON
+	return modelmaker::incref(m_obj);
+#else
+	return m_obj;
+#endif
 }
 
 bool unknown::loaded() {
-	return m_obj;
+	return modelmaker::isNull(m_obj);
 }
 
 bool unknown::isBool() {
-	return m_obj && json_is_boolean(m_obj);
+	return modelmaker::isNull(m_obj) && modelmaker::isBool(m_obj);
 }
 
 bool unknown::isInt() {
-	return m_obj && json_is_integer(m_obj);
+	return modelmaker::isNull(m_obj) && modelmaker::isInt(m_obj);
 }
 
 bool unknown::isDouble() {
-	return m_obj && json_is_real(m_obj);
+	return modelmaker::isNull(m_obj) && modelmaker::isDouble(m_obj);
 }
 
 bool unknown::isString() {
-	return m_obj && json_is_string(m_obj);
+	return modelmaker::isNull(m_obj) && modelmaker::isString(m_obj);
 }
 
 bool unknown::isObject() {
-	return m_obj && json_is_object(m_obj);
+	return modelmaker::isNull(m_obj) && modelmaker::isObj(m_obj);
 }
 
 bool unknown::toBool() {
-	return json_is_true(m_obj);
+	return modelmaker::toBool(m_obj);
 }
 
 int unknown::toInt() {
-	return json_integer_value(m_obj);
+	return modelmaker::toInt(m_obj);
 }
 
 double unknown::toDouble() {
-	return json_real_value(m_obj);
+	return modelmaker::toDouble(m_obj);
 }
 
 string unknown::toString() {
-	return json_string_value(m_obj);
+	return modelmaker::toString(m_obj);
 }
 
 void unknown::set(Model *v) {
-	json_t *obj = v->buildJsonObj();
-	json_t *old = m_obj;
+	modelmaker::JsonValOut obj = v->buildJsonObj();
+	modelmaker::JsonVal old = m_obj;
 	m_obj = obj;
-	if (old) {
-		json_decref(old);
+	if (!modelmaker::isNull(old)) {
+		modelmaker::decref(old);
 	}
 }
 
 void unknown::set(bool v) {
-	json_t *obj = json_boolean(v);
-	json_t *old = m_obj;
+	modelmaker::JsonValOut obj = modelmaker::toJsonVal(v);
+	modelmaker::JsonVal old = m_obj;
 	m_obj = obj;
-	if (old) {
-		json_decref(old);
+	if (!modelmaker::isNull(old)) {
+		modelmaker::decref(old);
 	}
 }
 
 void unknown::set(int v) {
-	json_t *obj = json_integer(v);
-	json_t *old = m_obj;
+	modelmaker::JsonValOut obj = modelmaker::toJsonVal(v);
+	modelmaker::JsonVal old = m_obj;
 	m_obj = obj;
-	if (old) {
-		json_decref(old);
+	if (!modelmaker::isNull(old)) {
+		modelmaker::decref(old);
 	}
 }
 
 void unknown::set(double v) {
-	json_t *obj = json_real(v);
-	json_t *old = m_obj;
+	modelmaker::JsonValOut obj = modelmaker::toJsonVal(v);
+	modelmaker::JsonVal old = m_obj;
 	m_obj = obj;
-	if (old) {
-		json_decref(old);
+	if (!modelmaker::isNull(old)) {
+		modelmaker::decref(old);
 	}
 }
 
 void unknown::set(string v) {
-	json_t *obj = json_string(v.c_str());
-	json_t *old = m_obj;
+	modelmaker::JsonValOut obj = modelmaker::toJsonVal(v);
+	modelmaker::JsonVal old = m_obj;
 	m_obj = obj;
-	if (old) {
-		json_decref(old);
+	if (!modelmaker::isNull(old)) {
+		modelmaker::decref(old);
 	}
 }

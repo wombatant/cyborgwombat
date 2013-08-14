@@ -558,31 +558,6 @@ inline JsonValOut toJsonVal(JsonObj v) {
 }
 
 
-//inline bool isBool(JsonValOut v) {
-//	return v.isBool();
-//}
-//
-//inline bool isInt(JsonValOut v) {
-//	return v.isDouble();
-//}
-//
-//inline bool isDouble(JsonValOut v) {
-//	return v.isDouble();
-//}
-//
-//inline bool isString(JsonValOut v) {
-//	return v.isString();
-//}
-//
-//inline bool isArray(JsonValOut v) {
-//	return v.isArray();
-//}
-//
-//inline bool isObj(JsonValOut v) {
-//	return v.isObject();
-//}
-
-
 inline bool isNull(JsonObjIteratorVal v) {
 	return v.isNull();
 }

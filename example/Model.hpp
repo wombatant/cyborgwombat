@@ -5,15 +5,15 @@
 #include <sstream>
 #include <vector>
 #include <map>
-#include <jansson.h>
 #include "modelmakerdefs.hpp"
 
 
-using std::string;
 using std::vector;
 using std::map;
 
 namespace models {
+
+using modelmaker::string;
 
 class Model1: public modelmaker::Model {
 
@@ -21,15 +21,15 @@ class Model1: public modelmaker::Model {
 
 		Model1();
 
-		bool load_json_t(json_t *obj);
+		bool loadJsonObj(modelmaker::JsonVal obj);
 
-		json_t* buildJsonObj();
+		modelmaker::JsonValOut buildJsonObj();
 
-		string Field1;
-		modelmaker::unknown Field2;
-		vector< int > Field3;
-		vector< vector< string > > Field4;
-		map< string, string > Field5;
+		string field1;
+		modelmaker::unknown field2;
+		vector< int > field3;
+		vector< vector< string > > field4;
+		map< string, string > field5;
 };
 
 }

@@ -6,54 +6,58 @@ using namespace models;
 using std::stringstream;
 
 Model1::Model1() {
-	this->Field1 = "";
+	this->field1 = "";
 }
 
-bool Model1::load_json_t(json_t *in) {
+bool Model1::loadJsonObj(modelmaker::JsonVal in) {
+	modelmaker::JsonObjOut inObj = modelmaker::toObj(in);
 	{
-		json_t *obj0 = json_object_get(in, "Field1");
+		modelmaker::JsonValOut obj0 = modelmaker::objRead(inObj, "Field1");
 		{
-			if (json_is_string(obj0)) {
-				this->Field1 = json_string_value(obj0);
+			if (modelmaker::isString(obj0)) {
+				this->field1 = modelmaker::toString(obj0);
 			}
 		}
 	}
 	{
-		json_t *obj0 = json_object_get(in, "Field2");
+		modelmaker::JsonValOut obj0 = modelmaker::objRead(inObj, "Field2");
 		{
-			this->Field2.load_json_t(obj0);
+			this->field2.loadJsonObj(obj0);
 		}
 	}
 	{
-		json_t *obj0 = json_object_get(in, "Field3");
-		if (obj0 != NULL && json_typeof(obj0) == JSON_ARRAY) {
-			unsigned int size = json_array_size(obj0);
-			this->Field3.resize(size);
+		modelmaker::JsonValOut obj0 = modelmaker::objRead(inObj, "Field3");
+		if (!modelmaker::isNull(obj0) && modelmaker::isArray(obj0)) {
+			modelmaker::JsonArrayOut array0 = modelmaker::toArray(obj0);
+			unsigned int size = modelmaker::arraySize(array0);
+			this->field3.resize(size);
 			for (unsigned int i = 0; i < size; i++) {
-				json_t *obj1 = json_array_get(obj0, i);
+				modelmaker::JsonValOut obj1 = modelmaker::arrayRead(array0, i);
 				{
-					if (json_is_integer(obj1)) {
-						this->Field3[i] = (int) json_integer_value(obj1);
+					if (modelmaker::isInt(obj1)) {
+						this->field3[i] = modelmaker::toInt(obj1);
 					}
 				}
 			}
 		}
 	}
 	{
-		json_t *obj0 = json_object_get(in, "Field4");
-		if (obj0 != NULL && json_typeof(obj0) == JSON_ARRAY) {
-			unsigned int size = json_array_size(obj0);
-			this->Field4.resize(size);
+		modelmaker::JsonValOut obj0 = modelmaker::objRead(inObj, "Field4");
+		if (!modelmaker::isNull(obj0) && modelmaker::isArray(obj0)) {
+			modelmaker::JsonArrayOut array0 = modelmaker::toArray(obj0);
+			unsigned int size = modelmaker::arraySize(array0);
+			this->field4.resize(size);
 			for (unsigned int i = 0; i < size; i++) {
-				json_t *obj1 = json_array_get(obj0, i);
-				if (obj1 != NULL && json_typeof(obj1) == JSON_ARRAY) {
-					unsigned int size = json_array_size(obj1);
-					this->Field4[i].resize(size);
+				modelmaker::JsonValOut obj1 = modelmaker::arrayRead(array0, i);
+				if (!modelmaker::isNull(obj1) && modelmaker::isArray(obj1)) {
+					modelmaker::JsonArrayOut array1 = modelmaker::toArray(obj1);
+					unsigned int size = modelmaker::arraySize(array1);
+					this->field4[i].resize(size);
 					for (unsigned int ii = 0; ii < size; ii++) {
-						json_t *obj2 = json_array_get(obj1, ii);
+						modelmaker::JsonValOut obj2 = modelmaker::arrayRead(array1, ii);
 						{
-							if (json_is_string(obj2)) {
-								this->Field4[i][ii] = json_string_value(obj2);
+							if (modelmaker::isString(obj2)) {
+								this->field4[i][ii] = modelmaker::toString(obj2);
 							}
 						}
 					}
@@ -62,22 +66,23 @@ bool Model1::load_json_t(json_t *in) {
 		}
 	}
 	{
-		json_t *obj0 = json_object_get(in, "Field5");
-		if (obj0 != NULL && json_typeof(obj0) == JSON_OBJECT) {
-			const char *key;
-			json_t *obj1;
-			json_object_foreach(obj0, key, obj1) {
+		modelmaker::JsonValOut obj0 = modelmaker::objRead(inObj, "Field5");
+		if (!modelmaker::isNull(obj0) && modelmaker::isObj(obj0)) {
+			modelmaker::JsonObjOut map0 = modelmaker::toObj(obj0);
+			for (modelmaker::JsonObjIterator it1 = modelmaker::iterator(map0); !modelmaker::iteratorAtEnd(it1, map0); it1 = modelmaker::iteratorNext(map0,  it1)) {
 				string i;
+				modelmaker::JsonObjIteratorVal obj1 = modelmaker::iteratorValue(it1);
 				{
+					std::string key = modelmaker::toStdString(modelmaker::iteratorKey(it1));
+					std::string o;
 					std::stringstream s;
 					s << key;
-					s >> i;
+					s >> o;
+					i = o.c_str();
 				}
-				string val;
-				this->Field5.insert(make_pair(i, val));
 				{
-					if (json_is_string(obj1)) {
-						this->Field5[i] = json_string_value(obj1);
+					if (modelmaker::isString(obj1)) {
+						this->field5[i] = modelmaker::toString(obj1);
 					}
 				}
 			}
@@ -86,56 +91,59 @@ bool Model1::load_json_t(json_t *in) {
 	return true;
 }
 
-json_t* Model1::buildJsonObj() {
-	json_t *obj = json_object();
+modelmaker::JsonValOut Model1::buildJsonObj() {
+	modelmaker::JsonObjOut obj = modelmaker::newJsonObj();
 	{
-		json_t *out0 = json_string(this->Field1.c_str());
-		json_object_set(obj, "Field1", out0);
-		json_decref(out0);
+		modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->field1);
+		modelmaker::objSet(obj, "Field1", out0);
+		modelmaker::decref(out0);
 	}
 	{
-		json_t *out0 = this->Field2.buildJsonObj();
-		json_object_set(obj, "Field2", out0);
-		json_decref(out0);
+		modelmaker::JsonValOut obj0 = this->field2.buildJsonObj();
+		modelmaker::JsonValOut out0 = obj0;
+		modelmaker::objSet(obj, "Field2", out0);
+		modelmaker::decref(out0);
 	}
 	{
-		json_t *out1 = json_array();
-		for (unsigned int i = 0; i < this->Field3.size(); i++) {
-			json_t *out0 = json_integer(this->Field3[i]);
-			json_array_append(out1, out0);
-			json_decref(out0);
+		modelmaker::JsonArrayOut out1 = modelmaker::newJsonArray();
+		for (unsigned int i = 0; i < this->field3.size(); i++) {
+			modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->field3[i]);
+			modelmaker::arrayAdd(out1, out0);
+			modelmaker::decref(out0);
 		}
-		json_object_set(obj, "Field3", out1);
-		json_decref(out1);
+		modelmaker::objSet(obj, "Field3", out1);
+		modelmaker::decref(out1);
 	}
 	{
-		json_t *out2 = json_array();
-		for (unsigned int i = 0; i < this->Field4.size(); i++) {
-			json_t *out1 = json_array();
-			for (unsigned int ii = 0; ii < this->Field4[i].size(); ii++) {
-				json_t *out0 = json_string(this->Field4[i][ii].c_str());
-				json_array_append(out1, out0);
-				json_decref(out0);
+		modelmaker::JsonArrayOut out2 = modelmaker::newJsonArray();
+		for (unsigned int i = 0; i < this->field4.size(); i++) {
+			modelmaker::JsonArrayOut out1 = modelmaker::newJsonArray();
+			for (unsigned int ii = 0; ii < this->field4[i].size(); ii++) {
+				modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->field4[i][ii]);
+				modelmaker::arrayAdd(out1, out0);
+				modelmaker::decref(out0);
 			}
-			json_array_append(out2, out1);
-			json_decref(out1);
+			modelmaker::arrayAdd(out2, out1);
+			modelmaker::decref(out1);
 		}
-		json_object_set(obj, "Field4", out2);
-		json_decref(out2);
+		modelmaker::objSet(obj, "Field4", out2);
+		modelmaker::decref(out2);
 	}
 	{
-		json_t *out1 = json_object();
-		for (map< string, string >::iterator n = this->Field5.begin(); n != this->Field5.end(); ++n) {
+		modelmaker::JsonObjOut out1 = modelmaker::newJsonObj();
+		for (map< string, string >::iterator n = this->field5.begin(); n != this->field5.end(); ++n) {
 			std::stringstream s;
 			string key;
-			s << n->first;
-			s >> key;
-			json_t *out0 = json_string(this->Field5[n->first].c_str());
-			json_object_set(out1, key.c_str(), out0);
-			json_decref(out0);
+			std::string tmp;
+			s << modelmaker::toStdString(n->first);
+			s >> tmp;
+			key = modelmaker::toString(tmp);
+			modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->field5[n->first]);
+			modelmaker::objSet(out1, key, out0);
+			modelmaker::decref(out0);
 		}
-		json_object_set(obj, "Field5", out1);
-		json_decref(out1);
+		modelmaker::objSet(obj, "Field5", out1);
+		modelmaker::decref(out1);
 	}
 	return obj;
 }

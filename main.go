@@ -37,17 +37,18 @@ func main() {
 	out := flag.String("o", "stdout", "File or file set(languages with header files) to write the output to")
 	in := flag.String("i", "", "The model file to generate JSON-C code for")
 	namespace := flag.String("n", "models", "Namespace for the models")
+	outputType := flag.String("t", "cpp-jansson", "Output type(cpp-jansson, cpp-qt)")
 	version := flag.Bool("v", false, "version")
 	flag.Parse()
 
 	if *version {
-		fmt.Println("modelmaker version 0.7.3")
+		fmt.Println("modelmaker version 0.8.0")
 		return
 	}
-	parseFile(*in, *out, *namespace)
+	parseFile(*in, *out, *namespace, *outputType)
 }
 
-func parseFile(path, outFile, namespace string) {
+func parseFile(path, outFile, namespace, outputType string) {
 	ss, err := ioutil.ReadFile(path)
 	if err != nil {
 		println("Could not find or open specified model")
@@ -70,9 +71,16 @@ func parseFile(path, outFile, namespace string) {
 		t.TokType, t.TokValue, point = l.NextToken(input, point)
 		tokens = append(tokens, t)
 	}
+	ioutputType := USING_JANSSON
+	switch outputType {
+	case "jansson-qt":
+		ioutputType = USING_JANSSON
+	case "cpp-qt":
+		ioutputType = USING_QT
+	}
 
 	var p Parser
-	p.out = NewCOut(namespace, USING_QT)
+	p.out = NewCOut(namespace, ioutputType)
 	out, err := p.parse(tokens)
 	if err != nil {
 		println(err)

@@ -813,7 +813,7 @@ inline JsonVal toJsonVal(JsonArray v) {
 
 
 inline bool isNull(JsonVal v) {
-	return v;
+	return !v;
 }
 
 inline bool isBool(JsonVal v) {
@@ -898,7 +898,7 @@ inline JsonObjIteratorVal iteratorValue(JsonObjIterator i) {
 }
 
 inline bool iteratorAtEnd(JsonObjIterator i, JsonObj) {
-	return i;
+	return !i;
 }
 
 #endif

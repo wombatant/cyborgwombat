@@ -105,10 +105,11 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "\nclass " + v + ": public modelmaker::Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
-	me.hpp += "\n\t\tbool loadJsonObj(modelmaker::JsonObj obj);\n"
+	me.hpp += "\n\t\tbool loadJsonObj(modelmaker::JsonVal obj);\n"
 	me.hpp += "\n\t\tmodelmaker::JsonValOut buildJsonObj();\n\n"
 	me.constructor += v + "::" + v + "() {\n"
-	me.reader += "bool " + v + "::loadJsonObj(modelmaker::JsonObj in) {"
+	me.reader += "bool " + v + "::loadJsonObj(modelmaker::JsonVal in) {\n"
+	me.reader += "\tmodelmaker::JsonObjOut inObj = modelmaker::toObj(in);"
 	me.writer += "modelmaker::JsonValOut " + v + `::buildJsonObj() {
 	modelmaker::JsonObjOut obj = modelmaker::newJsonObj();`
 }
@@ -165,7 +166,7 @@ func (me *Cpp) buildConstructor(v, t string, index int) string {
 func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
 	if depth == 0 {
 		code.PushBlock()
-		code.Insert("modelmaker::JsonValOut obj0 = modelmaker::objRead(in, \"" + jsonV + "\");")
+		code.Insert("modelmaker::JsonValOut obj0 = modelmaker::objRead(inObj, \"" + jsonV + "\");")
 	}
 	if len(index) > 0 {
 		is := "i"
@@ -185,7 +186,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 		} else if index[0][:3] == "map" {
 			code.PushIfBlock("!modelmaker::isNull(obj" + strconv.Itoa(depth) + ") && modelmaker::isObj(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("modelmaker::JsonObjOut map" + strconv.Itoa(depth) + " = modelmaker::toObj(obj" + strconv.Itoa(depth) + ");")
-			code.PushForBlock("modelmaker::JsonObjIterator it" + strconv.Itoa(depth+1) + " = modelmaker::iterator(map" + strconv.Itoa(depth) + "); modelmaker::iteratorHasValue(it" + strconv.Itoa(depth+1) + "); " + "it" + strconv.Itoa(depth+1) + " = modelmaker::iteratorNext(map" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
+			code.PushForBlock("modelmaker::JsonObjIterator it" + strconv.Itoa(depth+1) + " = modelmaker::iterator(map" + strconv.Itoa(depth) + "); !modelmaker::iteratorAtEnd(it" + strconv.Itoa(depth+1) + ", map" + strconv.Itoa(depth) + "); " + "it" + strconv.Itoa(depth+1) + " = modelmaker::iteratorNext(map" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
 			code.Insert(index[0][4:] + " " + is + ";")
 			code.Insert("modelmaker::JsonObjIteratorVal obj" + strconv.Itoa(depth+1) + " = modelmaker::iteratorValue(it" + strconv.Itoa(depth+1) + ");")
 			code.PushBlock()
@@ -201,10 +202,6 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 				code.Insert(is + " = o.c_str();")
 			}
 			code.PopBlock()
-
-			//initialize value in map
-			code.Insert(me.buildTypeDec(t, index[1:]) + " val;")
-			code.Insert("this->" + v + sub + "[" + is + "] = val;")
 
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
@@ -230,8 +227,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			code.Insert("this->" + v + sub + " = modelmaker::toString(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "modelmaker::unknown":
-			code.Insert("modelmaker::JsonValOut finalObj = modelmaker::toObj(obj" + strconv.Itoa(depth) + ");")
-			code.Insert("this->" + v + sub + ".loadJsonObj(finalObj);")
+			code.Insert("this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
 		default:
 			code.Insert("modelmaker::JsonValOut finalObj = modelmaker::toObj(obj" + strconv.Itoa(depth) + ");")
 			code.PushIfBlock("modelmaker::isObj(finalObj)")
@@ -456,7 +452,7 @@ JsonObjIterator iterator(JsonObj);
 JsonObjIterator iteratorNext(JsonObj, JsonObjIterator);
 JsonObjIteratorKey iteratorKey(JsonObjIterator);
 JsonObjIteratorVal iteratorValue(JsonObjIterator);
-bool iteratorHasValue(JsonObjIterator i);
+bool iteratorAtEnd(JsonObjIterator, JsonObj);
 
 
 
@@ -726,12 +722,17 @@ inline JsonObjIteratorKey iteratorKey(JsonObjIterator i) {
 	return i.key();
 }
 
-inline bool iteratorHasValue(JsonObjIterator i) {
-	return !i.value().isNull();
+inline bool iteratorAtEnd(JsonObjIterator i, JsonObj o) {
+	return i == o.end();
 }
 
 inline JsonObjIteratorVal iteratorValue(JsonObjIterator i) {
 	return i.value();
+}
+
+inline string write(JsonObj obj) {
+	QJsonDocument doc(obj);
+	return doc.toJson();
 }
 
 #else
@@ -751,6 +752,16 @@ inline const char* toCString(string str) {
 
 inline JsonObjOut read(const char *json) {
 	return json_loads(json, 0, NULL);
+}
+
+inline string write(JsonObj obj) {
+	char *tmp = json_dumps(obj, JSON_COMPACT);
+	if (!tmp)
+		return "{}";
+	string out = tmp;
+	free(tmp);
+	modelmaker::decref(obj);
+	return out;
 }
 
 //value methods
@@ -886,7 +897,7 @@ inline JsonObjIteratorVal iteratorValue(JsonObjIterator i) {
 	return json_object_iter_value(json_object_key_to_iter(i));
 }
 
-inline bool iteratorHasValue(JsonObjIterator i) {
+inline bool iteratorAtEnd(JsonObjIterator i, JsonObj) {
 	return i;
 }
 
@@ -990,15 +1001,9 @@ void Model::load(string json) {
 }
 
 string Model::write() {
-	//modelmaker::JsonVal obj = buildJsonObj();
-	//char *tmp = json_dumps(obj, JSON_COMPACT);
-	//if (!tmp)
-	//	return "{}";
-	//string out = tmp;
-	//free(tmp);
-	//modelmaker::decref(obj);
-	//return out;
-	return "";
+	modelmaker::JsonValOut val = buildJsonObj();
+	modelmaker::JsonObjOut obj = modelmaker::toObj(val);
+	return modelmaker::write(obj);
 }
 
 unknown::unknown() {

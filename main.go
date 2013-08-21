@@ -42,7 +42,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("modelmaker version 0.8.0")
+		fmt.Println("modelmaker version 0.9.0")
 		return
 	}
 	parseFile(*in, *out, *namespace, *outputType)
@@ -94,8 +94,6 @@ func parseFile(path, outFile, namespace, outputType string) {
 			cout := out.(*Cpp)
 			ioutil.WriteFile(outFile+".hpp", []byte(cout.header(outFile+".hpp")), 0644)
 			ioutil.WriteFile(outFile+".cpp", []byte(cout.body(outFile+".hpp")), 0644)
-			ioutil.WriteFile("modelmakerdefs.hpp", []byte(cout.buildModelmakerDefsHeader()), 0644)
-			ioutil.WriteFile("modelmakerdefs.cpp", []byte(cout.buildModelmakerDefsBody()), 0644)
 		}
 	}
 }

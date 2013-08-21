@@ -41,13 +41,10 @@ func NewCOut(namespace string, lib int) *Cpp {
 	out.lib = lib
 	out.hppPrefix = `#include <string>
 #include <sstream>
-#include <vector>
-#include <map>
-#include "modelmakerdefs.hpp"
+
+` + out.buildModelmakerDefsHeader() + `
 
 
-using std::vector;
-using std::map;
 `
 	return out
 }
@@ -69,10 +66,10 @@ func (me *Cpp) buildTypeDec(t string, index []string) string {
 	out := ""
 	for i := 0; i < len(index); i++ {
 		if index[i] == "array" {
-			out += "vector< "
+			out += "std::vector< "
 			array += " >"
 		} else if index[i][:3] == "map" {
-			out += "map< " + index[i][4:] + ", "
+			out += "std::map< " + index[i][4:] + ", "
 			array += " >"
 		}
 	}
@@ -137,6 +134,8 @@ func (me *Cpp) body(headername string) string {
 	if headername != "" {
 		include += `//Generated Code
 
+` + me.buildModelmakerDefsBody(headername) + `
+
 #include "` + headername + `"
 
 using namespace ` + me.namespace + `;
@@ -188,18 +187,22 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			code.Insert("modelmaker::JsonObjOut map" + strconv.Itoa(depth) + " = modelmaker::toObj(obj" + strconv.Itoa(depth) + ");")
 			code.PushForBlock("modelmaker::JsonObjIterator it" + strconv.Itoa(depth+1) + " = modelmaker::iterator(map" + strconv.Itoa(depth) + "); !modelmaker::iteratorAtEnd(it" + strconv.Itoa(depth+1) + ", map" + strconv.Itoa(depth) + "); " + "it" + strconv.Itoa(depth+1) + " = modelmaker::iteratorNext(map" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
 			code.Insert(index[0][4:] + " " + is + ";")
-			code.Insert("modelmaker::JsonObjIteratorVal obj" + strconv.Itoa(depth+1) + " = modelmaker::iteratorValue(it" + strconv.Itoa(depth+1) + ");")
+			code.Insert("modelmaker::JsonValOut obj" + strconv.Itoa(depth+1) + " = modelmaker::iteratorValue(it" + strconv.Itoa(depth+1) + ");")
 			code.PushBlock()
 			code.Insert("std::string key = modelmaker::toStdString(modelmaker::iteratorKey(it" + strconv.Itoa(depth+1) + "));")
 			switch index[0][4:] {
 			case "bool":
 				code.Insert(is + " = key == \"true\";")
-			case "double", "int", "string":
+			case "string":
 				code.Insert("std::string o;")
 				code.Insert("std::stringstream s;")
 				code.Insert("s << key;")
 				code.Insert("s >> o;")
 				code.Insert(is + " = o.c_str();")
+			case "double", "int":
+				code.Insert("std::stringstream s;")
+				code.Insert("s << key;")
+				code.Insert("s >> " + is + ";")
 			}
 			code.PopBlock()
 
@@ -266,11 +269,18 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 			switch index[depth][4:] {
 			case "bool":
 				code.Insert("string key = " + ns + "->first ? \"true\" : \"false\";")
-			case "string", "int", "double":
+			case "string":
 				code.Insert("std::stringstream s;")
 				code.Insert("string key;")
 				code.Insert("std::string tmp;")
-				code.Insert("s << modelmaker::toStdString(" + ns + "->first);")
+				code.Insert("s << modelmaker::toStdString(modelmaker::toString(" + ns + "->first));")
+				code.Insert("s >> tmp;")
+				code.Insert("key = modelmaker::toString(tmp);")
+			case "int", "double":
+				code.Insert("std::stringstream s;")
+				code.Insert("string key;")
+				code.Insert("std::string tmp;")
+				code.Insert("s << " + ns + "->first;")
 				code.Insert("s >> tmp;")
 				code.Insert("key = modelmaker::toString(tmp);")
 			}
@@ -334,12 +344,12 @@ func (me *Cpp) buildModelmakerDefsHeader() string {
 	}
 	out := `//Generated Code
 
-#ifndef MODELMAKERDEFS_HPP
-#define MODELMAKERDEFS_HPP
-
 #define ` + using + `
 
 #include <string>
+
+#include <vector>
+#include <map>
 
 #ifdef USING_QT
 #include <QString>
@@ -347,6 +357,8 @@ func (me *Cpp) buildModelmakerDefsHeader() string {
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QMap>
+#include <QVector>
 #else
 #include <string>
 #include <jansson.h>
@@ -455,6 +467,10 @@ JsonObjIteratorVal iteratorValue(JsonObjIterator);
 bool iteratorAtEnd(JsonObjIterator, JsonObj);
 
 
+
+inline string toString(string str) {
+	return str;
+}
 
 
 #ifdef USING_QT
@@ -716,10 +732,6 @@ inline std::string toStdString(string str) {
 	return str;
 }
 
-inline string toString(string str) {
-	return str;
-}
-
 inline const char* toCString(string str) {
 	return str.c_str();
 }
@@ -887,6 +899,9 @@ class Model {
 		void writeFile(string path);
 		void load(string json);
 		string write();
+#ifdef USING_QT
+		bool loadJsonObj(modelmaker::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
+#endif
 	protected:
 		virtual modelmaker::JsonValOut buildJsonObj() = 0;
 		virtual bool loadJsonObj(modelmaker::JsonVal obj) = 0;
@@ -929,17 +944,15 @@ class unknown: public Model {
 };
 
 };
-
-#endif
 `
 	return out
 }
 
-func (me *Cpp) buildModelmakerDefsBody() string {
-	out := `//Generated Code
+func (me *Cpp) buildModelmakerDefsBody(headername string) string {
+	out := `
 
 #include <fstream>
-#include "modelmakerdefs.hpp"
+#include "` + headername + `"
 
 using namespace ` + me.namespace + `;
 using namespace ` + me.namespace + `::modelmaker;
@@ -1044,27 +1057,27 @@ modelmaker::JsonValOut unknown::buildJsonObj() {
 }
 
 bool unknown::loaded() {
-	return modelmaker::isNull(m_obj);
+	return !modelmaker::isNull(m_obj);
 }
 
 bool unknown::isBool() {
-	return modelmaker::isNull(m_obj) && modelmaker::isBool(m_obj);
+	return !modelmaker::isNull(m_obj) && modelmaker::isBool(m_obj);
 }
 
 bool unknown::isInt() {
-	return modelmaker::isNull(m_obj) && modelmaker::isInt(m_obj);
+	return !modelmaker::isNull(m_obj) && modelmaker::isInt(m_obj);
 }
 
 bool unknown::isDouble() {
-	return modelmaker::isNull(m_obj) && modelmaker::isDouble(m_obj);
+	return !modelmaker::isNull(m_obj) && modelmaker::isDouble(m_obj);
 }
 
 bool unknown::isString() {
-	return modelmaker::isNull(m_obj) && modelmaker::isString(m_obj);
+	return !modelmaker::isNull(m_obj) && modelmaker::isString(m_obj);
 }
 
 bool unknown::isObject() {
-	return modelmaker::isNull(m_obj) && modelmaker::isObj(m_obj);
+	return !modelmaker::isNull(m_obj) && modelmaker::isObj(m_obj);
 }
 
 bool unknown::toBool() {

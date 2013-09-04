@@ -55,12 +55,18 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 	}
 	for tokens[0].String() == "[" || tokens[0].String() == "map" {
 		if tokens[0].String() == "[" {
-			if tokens[1].String() != "]" {
+			if tokens[1].String() == "]" {
+				size += 2
+				t = append(t, "slice")
+				tokens = tokens[2:]
+			} else if tokens[1].Type() == lex.IntLiteral && tokens[2].String() == "]" {
+				size += 3
+				t = append(t, "array")
+				t = append(t, tokens[1].String())
+				tokens = tokens[3:]
+			} else {
 				return 0, errors.New("Unexpected token")
 			}
-			size += 2
-			t = append(t, "array")
-			tokens = tokens[2:]
 		} else if tokens[0].String() == "map" {
 			if tokens[1].String() == "[" {
 				switch tokens[2].String() {

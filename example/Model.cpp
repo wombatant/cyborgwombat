@@ -193,6 +193,7 @@ void unknown::set(string v) {
 }
 
 
+#include "string.h"
 #include "Model.hpp"
 
 using namespace models;
@@ -223,7 +224,6 @@ bool Model1::loadJsonObj(modelmaker::JsonVal in) {
 		if (!modelmaker::isNull(obj0) && modelmaker::isArray(obj0)) {
 			modelmaker::JsonArrayOut array0 = modelmaker::toArray(obj0);
 			unsigned int size = modelmaker::arraySize(array0);
-			this->field3.resize(size);
 			for (unsigned int i = 0; i < size; i++) {
 				modelmaker::JsonValOut obj1 = modelmaker::arrayRead(array0, i);
 				{
@@ -298,14 +298,14 @@ modelmaker::JsonValOut Model1::buildJsonObj() {
 		modelmaker::decref(out0);
 	}
 	{
-		modelmaker::JsonArrayOut out1 = modelmaker::newJsonArray();
-		for (unsigned int i = 0; i < this->field3.size(); i++) {
+		modelmaker::JsonArrayOut out2 = modelmaker::newJsonArray();
+		for (unsigned int i = 0; i < 3; i++) {
 			modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->field3[i]);
-			modelmaker::arrayAdd(out1, out0);
+			modelmaker::arrayAdd(out2, out0);
 			modelmaker::decref(out0);
 		}
-		modelmaker::objSet(obj, "Field3", out1);
-		modelmaker::decref(out1);
+		modelmaker::objSet(obj, "Field3", out2);
+		modelmaker::decref(out2);
 	}
 	{
 		modelmaker::JsonArrayOut out2 = modelmaker::newJsonArray();

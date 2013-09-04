@@ -22,7 +22,7 @@ import (
 
 const (
 	USING_JANSSON = iota
-	USING_QT = iota
+	USING_QT      = iota
 )
 
 type Cpp struct {
@@ -58,19 +58,28 @@ func (me *Cpp) typeMap(t string) string {
 	default:
 		return t
 	}
-	return ""
+	return t
 }
 
 func (me *Cpp) buildTypeDec(t string, index []string) string {
 	array := ""
 	out := ""
-	for i := 0; i < len(index); i++ {
+	for i := 0; i < len(index); {
 		if index[i] == "array" {
+			if i != len(index) - 2 {
+				array += "[" + index[i+1] + "]"
+				i += 2
+			} else {
+				break
+			}
+		} else if index[i] == "slice" {
 			out += "std::vector< "
 			array += " >"
+			i++
 		} else if index[i][:3] == "map" {
 			out += "std::map< " + index[i][4:] + ", "
 			array += " >"
+			i++
 		}
 	}
 	out += t + array
@@ -78,7 +87,11 @@ func (me *Cpp) buildTypeDec(t string, index []string) string {
 }
 
 func (me *Cpp) buildVar(v, t string, index []string) string {
-	return me.buildTypeDec(t, index) + " " + v + ";"
+	array := ""
+	if len(index) > 1 && index[len(index)-2] == "array" {
+		array = "[" + index[len(index)-1] + "]"
+	}
+	return me.buildTypeDec(t, index) + " " + v + array + ";"
 }
 
 func (me *Cpp) addVar(v string, index []string) {
@@ -136,6 +149,7 @@ func (me *Cpp) body(headername string) string {
 
 ` + me.buildModelmakerDefsBody(headername) + `
 
+#include "string.h"
 #include "` + headername + `"
 
 using namespace ` + me.namespace + `;
@@ -172,14 +186,18 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 		for i := 0; i < depth; i++ {
 			is += "i"
 		}
-		if index[0] == "array" {
+		if index[0] == "array" || index[0] == "slice" {
 			code.PushIfBlock("!modelmaker::isNull(obj" + strconv.Itoa(depth) + ") && modelmaker::isArray(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("modelmaker::JsonArrayOut array" + strconv.Itoa(depth) + " = modelmaker::toArray(obj" + strconv.Itoa(depth) + ");")
 			code.Insert("unsigned int size = modelmaker::arraySize(array" + strconv.Itoa(depth) + ");")
-			code.Insert("this->" + v + sub + ".resize(size);")
+			inc := 2
+			if index[0] == "slice" {
+				inc = 1
+				code.Insert("this->" + v + sub + ".resize(size);")
+			}
 			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < size; " + is + "++")
 			code.Insert("modelmaker::JsonValOut obj" + strconv.Itoa(depth+1) + " = modelmaker::arrayRead(array" + strconv.Itoa(depth) + ", " + is + ");")
-			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
+			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[inc:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0][:3] == "map" {
@@ -256,12 +274,18 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 	}
 
 	if len(index) > depth {
-		if index[depth] == "array" {
+		if index[depth] == "array" || index[depth] == "slice" {
 			code.Insert("modelmaker::JsonArrayOut out" + strconv.Itoa(len(index[depth:])) + " = modelmaker::newJsonArray();")
-			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
-			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+1, index)
-			code.Insert("modelmaker::arrayAdd(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
-			code.Insert("modelmaker::decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			inc := 1
+			if index[depth] == "slice" {
+				code.PushForBlock("unsigned int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
+			} else {
+				code.PushForBlock("unsigned int " + is + " = 0; " + is + " < " + index[depth+1] + "; " + is + "++")
+				inc++
+			}
+			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+inc, index)
+			code.Insert("modelmaker::arrayAdd(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+inc:])) + ");")
+			code.Insert("modelmaker::decref(out" + strconv.Itoa(len(index[depth+inc:])) + ");")
 			code.PopBlock()
 		} else if index[depth][:3] == "map" {
 			code.Insert("modelmaker::JsonObjOut out" + strconv.Itoa(len(index[depth:])) + " = modelmaker::newJsonObj();")

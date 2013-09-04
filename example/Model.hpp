@@ -626,7 +626,7 @@ class Model1: public modelmaker::Model {
 
 		string field1;
 		modelmaker::unknown field2;
-		std::vector< int > field3;
+		int field3[3];
 		std::vector< std::vector< string > > field4;
 		std::map< string, string > field5;
 };

@@ -23,16 +23,6 @@ import (
 	"os"
 )
 
-type Var struct {
-	Name string
-	Type []string
-}
-
-type Model struct {
-	Name string
-	Vars []Var
-}
-
 func main() {
 	out := flag.String("o", "stdout", "File or file set(languages with header files) to write the output to")
 	in := flag.String("i", "", "The model file to generate JSON-C code for")
@@ -131,7 +121,7 @@ func topSortModels(models []*Model) []*Model {
 	//build dependency structure
 	for _, v := range a {
 		for _, vv := range v.model.Vars {
-			t := vv.Type[len(vv.Type)-1]
+			t := vv.Type[len(vv.Type)-1].Type
 			if !isScalar(t) {
 				if node, ok := m[t]; ok {
 					node.dependents = append(node.dependents, v.model.Name)

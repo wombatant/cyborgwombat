@@ -299,14 +299,14 @@ modelmaker::JsonValOut Model1::buildJsonObj() {
 		modelmaker::decref(out0);
 	}
 	{
-		modelmaker::JsonArrayOut out2 = modelmaker::newJsonArray();
+		modelmaker::JsonArrayOut out1 = modelmaker::newJsonArray();
 		for (unsigned int i = 0; i < 4; i++) {
 			modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->field3[i]);
-			modelmaker::arrayAdd(out2, out0);
+			modelmaker::arrayAdd(out1, out0);
 			modelmaker::decref(out0);
 		}
-		modelmaker::objSet(obj, "Field3", out2);
-		modelmaker::decref(out2);
+		modelmaker::objSet(obj, "Field3", out1);
+		modelmaker::decref(out1);
 	}
 	{
 		modelmaker::JsonArrayOut out2 = modelmaker::newJsonArray();

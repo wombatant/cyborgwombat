@@ -21,6 +21,21 @@ import (
 	"github.com/gtalent/lex"
 )
 
+type VarType struct {
+	Type  string
+	Index string
+}
+
+type Var struct {
+	Name string
+	Type []VarType
+}
+
+type Model struct {
+	Name string
+	Vars []Var
+}
+
 type Parser struct {
 	out    Out
 	models []*Model
@@ -33,7 +48,7 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 		return 0, errors.New("Incomplete variable")
 	}
 
-	var t []string
+	var t []VarType
 	var variable string
 	if len(tokens) > 2 {
 		variable = tokens[1].String()
@@ -57,12 +72,11 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 		if tokens[0].String() == "[" {
 			if tokens[1].String() == "]" {
 				size += 2
-				t = append(t, "slice")
+				t = append(t, VarType{Type: "slice"})
 				tokens = tokens[2:]
 			} else if tokens[1].Type() == lex.IntLiteral && tokens[2].String() == "]" {
 				size += 3
-				t = append(t, "array")
-				t = append(t, tokens[1].String())
+				t = append(t, VarType{Type: "array", Index: tokens[1].String()})
 				tokens = tokens[3:]
 			} else {
 				return 0, errors.New("Unexpected token")
@@ -72,7 +86,7 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 				switch tokens[2].String() {
 				case "bool", "int", "float", "float32", "float64", "double", "string":
 					size += 4
-					t = append(t, "map "+tokens[2].String())
+					t = append(t, VarType{Type: "map", Index: tokens[2].String()})
 					tokens = tokens[4:]
 				default:
 					return 0, errors.New("Invalid map type, key must be bool, int, float, float32, float64, double, or string")
@@ -82,7 +96,7 @@ func (me *Parser) processVariable(tokens []lex.Token) (int, error) {
 			}
 		}
 	}
-	t = append(t, tokens[0].String())
+	t = append(t, VarType{Type: tokens[0].String()})
 	if len(tokens) < 1 {
 		return 0, errors.New("Incomplete variable")
 	}

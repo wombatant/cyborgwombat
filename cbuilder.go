@@ -61,45 +61,38 @@ func (me *Cpp) typeMap(t string) string {
 	return t
 }
 
-func (me *Cpp) buildTypeDec(t string, index []string) string {
+func (me *Cpp) buildTypeDec(t string, index []VarType) string {
 	array := ""
 	out := ""
-	for i := 0; i < len(index); {
-		if index[i] == "array" {
-			if i != len(index) - 2 {
-				array += "[" + index[i+1] + "]"
-				i += 2
-			} else {
-				break
-			}
-		} else if index[i] == "slice" {
+	for i := 0; i < len(index); i++ {
+		if i != len(index) - 1 && index[i].Type == "array" {
+				array += "[" + index[i].Index + "]"
+		} else if index[i].Type == "slice" {
 			out += "std::vector< "
 			array += " >"
-			i++
-		} else if index[i][:3] == "map" {
-			out += "std::map< " + index[i][4:] + ", "
+		} else if index[i].Type == "map" {
+			out += "std::map< " + index[i].Index + ", "
 			array += " >"
-			i++
 		}
 	}
 	out += t + array
 	return out
 }
 
-func (me *Cpp) buildVar(v, t string, index []string) string {
+func (me *Cpp) buildVar(v, t string, index []VarType) string {
 	array := ""
-	if len(index) > 1 && index[len(index)-2] == "array" {
-		array = "[" + index[len(index)-1] + "]"
+	if len(index) > 0 && index[len(index)-1].Type == "array" {
+		array = "[" + index[len(index)-1].Index + "]"
 	}
 	return me.buildTypeDec(t, index) + " " + v + array + ";"
 }
 
-func (me *Cpp) addVar(v string, index []string) {
+func (me *Cpp) addVar(v string, index []VarType) {
 	jsonV := v
 	if len(v) > 0 && v[0] < 91 {
 		v = string(v[0]+32) + v[1:]
 	}
-	t := me.typeMap(index[len(index)-1])
+	t := me.typeMap(index[len(index)-1].Type)
 	index = index[:len(index)-1]
 	me.hpp += "\t\t" + me.buildVar(v, t, index) + "\n"
 	var reader CppCode
@@ -164,7 +157,7 @@ func (me *Cpp) endsWithClose() bool {
 	return me.hpp[len(me.hpp)-3:] == "};\n"
 }
 
-func (me *Cpp) buildConstructor(v, t string, index []string) string {
+func (me *Cpp) buildConstructor(v, t string, index []VarType) string {
 	if len(index) < 1 {
 		switch t {
 		case "bool", "int", "double":
@@ -172,16 +165,16 @@ func (me *Cpp) buildConstructor(v, t string, index []string) string {
 		case "string":
 			return "\tthis->" + v + " = \"\";\n"
 		}
-	} else if index[0] == "array" {
+	} else if index[0].Type == "array" {
 		switch t {
 		case "bool", "int", "double":
-			return "\tfor (int i = 0; i < " + index[1] + "; this->" + v + "[i++] = 0);\n"
+			return "\tfor (int i = 0; i < " + index[0].Index + "; this->" + v + "[i++] = 0);\n"
 		}
 	}
 	return ""
 }
 
-func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []string, depth int) string {
+func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []VarType, depth int) string {
 	if depth == 0 {
 		code.PushBlock()
 		code.Insert("modelmaker::JsonValOut obj0 = modelmaker::objRead(inObj, \"" + jsonV + "\");")
@@ -191,29 +184,27 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 		for i := 0; i < depth; i++ {
 			is += "i"
 		}
-		if index[0] == "array" || index[0] == "slice" {
+		if index[0].Type == "array" || index[0].Type == "slice" {
 			code.PushIfBlock("!modelmaker::isNull(obj" + strconv.Itoa(depth) + ") && modelmaker::isArray(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("modelmaker::JsonArrayOut array" + strconv.Itoa(depth) + " = modelmaker::toArray(obj" + strconv.Itoa(depth) + ");")
 			code.Insert("unsigned int size = modelmaker::arraySize(array" + strconv.Itoa(depth) + ");")
-			inc := 2
-			if index[0] == "slice" {
-				inc = 1
+			if index[0].Type == "slice" {
 				code.Insert("this->" + v + sub + ".resize(size);")
 			}
 			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < size; " + is + "++")
 			code.Insert("modelmaker::JsonValOut obj" + strconv.Itoa(depth+1) + " = modelmaker::arrayRead(array" + strconv.Itoa(depth) + ", " + is + ");")
-			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[inc:], depth+1)
+			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
-		} else if len(index[0]) >= 3 && index[0][:3] == "map" {
+		} else if index[0].Type == "map" {
 			code.PushIfBlock("!modelmaker::isNull(obj" + strconv.Itoa(depth) + ") && modelmaker::isObj(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("modelmaker::JsonObjOut map" + strconv.Itoa(depth) + " = modelmaker::toObj(obj" + strconv.Itoa(depth) + ");")
 			code.PushForBlock("modelmaker::JsonObjIterator it" + strconv.Itoa(depth+1) + " = modelmaker::iterator(map" + strconv.Itoa(depth) + "); !modelmaker::iteratorAtEnd(it" + strconv.Itoa(depth+1) + ", map" + strconv.Itoa(depth) + "); " + "it" + strconv.Itoa(depth+1) + " = modelmaker::iteratorNext(map" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
-			code.Insert(index[0][4:] + " " + is + ";")
+			code.Insert(index[0].Index + " " + is + ";")
 			code.Insert("modelmaker::JsonValOut obj" + strconv.Itoa(depth+1) + " = modelmaker::iteratorValue(it" + strconv.Itoa(depth+1) + ");")
 			code.PushBlock()
 			code.Insert("std::string key = modelmaker::toStdString(modelmaker::iteratorKey(it" + strconv.Itoa(depth+1) + "));")
-			switch index[0][4:] {
+			switch index[0].Index {
 			case "bool":
 				code.Insert(is + " = key == \"true\";")
 			case "string":
@@ -270,7 +261,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 	return code.String()
 }
 
-func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, index []string) {
+func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, index []VarType) {
 	is := "i"
 	ns := "n"
 	for i := 0; i < depth; i++ {
@@ -279,23 +270,21 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 	}
 
 	if len(index) > depth {
-		if index[depth] == "array" || index[depth] == "slice" {
+		if index[depth].Type == "array" || index[depth].Type == "slice" {
 			code.Insert("modelmaker::JsonArrayOut out" + strconv.Itoa(len(index[depth:])) + " = modelmaker::newJsonArray();")
-			inc := 1
-			if index[depth] == "slice" {
+			if index[depth].Type == "slice" {
 				code.PushForBlock("unsigned int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
-			} else {
-				code.PushForBlock("unsigned int " + is + " = 0; " + is + " < " + index[depth+1] + "; " + is + "++")
-				inc++
+			} else { // array
+				code.PushForBlock("unsigned int " + is + " = 0; " + is + " < " + index[depth].Index + "; " + is + "++")
 			}
-			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+inc, index)
-			code.Insert("modelmaker::arrayAdd(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+inc:])) + ");")
-			code.Insert("modelmaker::decref(out" + strconv.Itoa(len(index[depth+inc:])) + ");")
+			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+1, index)
+			code.Insert("modelmaker::arrayAdd(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			code.Insert("modelmaker::decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()
-		} else if len(index[0]) >= 3 && index[depth][:3] == "map" {
+		} else if index[depth].Type == "map" {
 			code.Insert("modelmaker::JsonObjOut out" + strconv.Itoa(len(index[depth:])) + " = modelmaker::newJsonObj();")
 			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator " + ns + " = this->" + v + sub + ".begin(); " + ns + " != this->" + v + sub + ".end(); ++" + ns)
-			switch index[depth][4:] {
+			switch index[depth].Index {
 			case "bool":
 				code.Insert("string key = " + ns + "->first ? \"true\" : \"false\";")
 			case "string":
@@ -335,7 +324,7 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 	}
 }
 
-func (me *Cpp) buildWriter(v, jsonV, t string, index []string) string {
+func (me *Cpp) buildWriter(v, jsonV, t string, index []VarType) string {
 	var out CppCode
 	out.tabs = "\t"
 	out.PushBlock()

@@ -201,6 +201,7 @@ using std::stringstream;
 
 Model1::Model1() {
 	this->field1 = "";
+	for (int i = 0; i < 4; this->field3[i++] = 0);
 }
 
 bool Model1::loadJsonObj(modelmaker::JsonVal in) {
@@ -299,7 +300,7 @@ modelmaker::JsonValOut Model1::buildJsonObj() {
 	}
 	{
 		modelmaker::JsonArrayOut out2 = modelmaker::newJsonArray();
-		for (unsigned int i = 0; i < 3; i++) {
+		for (unsigned int i = 0; i < 4; i++) {
 			modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->field3[i]);
 			modelmaker::arrayAdd(out2, out0);
 			modelmaker::decref(out0);

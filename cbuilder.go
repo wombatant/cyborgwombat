@@ -104,7 +104,7 @@ func (me *Cpp) addVar(v string, index []string) {
 	me.hpp += "\t\t" + me.buildVar(v, t, index) + "\n"
 	var reader CppCode
 	reader.tabs += "\t"
-	me.constructor += me.buildConstructor(v, t, len(index))
+	me.constructor += me.buildConstructor(v, t, index)
 	me.reader += me.buildReader(&reader, v, jsonV, t, "", index, 0)
 	me.writer += me.buildWriter(v, jsonV, t, index)
 }
@@ -164,13 +164,18 @@ func (me *Cpp) endsWithClose() bool {
 	return me.hpp[len(me.hpp)-3:] == "};\n"
 }
 
-func (me *Cpp) buildConstructor(v, t string, index int) string {
-	if index < 1 {
+func (me *Cpp) buildConstructor(v, t string, index []string) string {
+	if len(index) < 1 {
 		switch t {
 		case "bool", "int", "double":
 			return "\tthis->" + v + " = 0;\n"
 		case "string":
 			return "\tthis->" + v + " = \"\";\n"
+		}
+	} else if index[0] == "array" {
+		switch t {
+		case "bool", "int", "double":
+			return "\tfor (int i = 0; i < " + index[1] + "; this->" + v + "[i++] = 0);\n"
 		}
 	}
 	return ""
@@ -200,7 +205,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []strin
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[inc:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
-		} else if index[0][:3] == "map" {
+		} else if len(index[0]) >= 3 && index[0][:3] == "map" {
 			code.PushIfBlock("!modelmaker::isNull(obj" + strconv.Itoa(depth) + ") && modelmaker::isObj(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("modelmaker::JsonObjOut map" + strconv.Itoa(depth) + " = modelmaker::toObj(obj" + strconv.Itoa(depth) + ");")
 			code.PushForBlock("modelmaker::JsonObjIterator it" + strconv.Itoa(depth+1) + " = modelmaker::iterator(map" + strconv.Itoa(depth) + "); !modelmaker::iteratorAtEnd(it" + strconv.Itoa(depth+1) + ", map" + strconv.Itoa(depth) + "); " + "it" + strconv.Itoa(depth+1) + " = modelmaker::iteratorNext(map" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
@@ -287,7 +292,7 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 			code.Insert("modelmaker::arrayAdd(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+inc:])) + ");")
 			code.Insert("modelmaker::decref(out" + strconv.Itoa(len(index[depth+inc:])) + ");")
 			code.PopBlock()
-		} else if index[depth][:3] == "map" {
+		} else if len(index[0]) >= 3 && index[depth][:3] == "map" {
 			code.Insert("modelmaker::JsonObjOut out" + strconv.Itoa(len(index[depth:])) + " = modelmaker::newJsonObj();")
 			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator " + ns + " = this->" + v + sub + ".begin(); " + ns + " != this->" + v + sub + ".end(); ++" + ns)
 			switch index[depth][4:] {

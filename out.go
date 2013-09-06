@@ -15,10 +15,14 @@
 */
 package main
 
+import (
+	"./parser"
+)
+
 type Out interface {
 	header(string) string
 	body(string) string
 	addClass(string)
-	addVar(string, []VarType)
+	addVar(string, []parser.VarType)
 	closeClass()
 }

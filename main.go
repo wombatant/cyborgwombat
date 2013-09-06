@@ -18,9 +18,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gtalent/lex"
 	"io/ioutil"
 	"os"
+	"./parser"
 )
 
 func main() {
@@ -32,7 +32,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("modelmaker version 0.9.0")
+		fmt.Println("modelmaker version 0.9.2")
 		return
 	}
 	parseFile(*in, *out, *namespace, *outputType)
@@ -44,118 +44,38 @@ func parseFile(path, outFile, namespace, outputType string) {
 		println("Could not find or open specified model")
 		os.Exit(1)
 	}
-	var tokens []lex.Token
-
 	input := string(ss)
-	for input[len(input)-2] == '\n' && input[len(input)-1] == '\n' {
-		input = input[:len(input)-1]
-	}
-	symbols := []string{"[", "]"}
-	keywords := []string{}
-	stringTypes := []lex.Pair{}
-	commentTypes := []lex.Pair{}
-	l := lex.NewAnalyzer(symbols, keywords, stringTypes, commentTypes, true)
 
-	for point := 0; point < len(input); {
-		var t lex.Token
-		t.TokType, t.TokValue, point = l.NextToken(input, point)
-		tokens = append(tokens, t)
-	}
 	ioutputType := USING_JANSSON
 	switch outputType {
-	case "jansson-qt":
+	case "cpp-jansson":
 		ioutputType = USING_JANSSON
 	case "cpp-qt":
 		ioutputType = USING_QT
 	}
 
-	var p Parser
-	p.out = NewCOut(namespace, ioutputType)
-	out, err := p.parse(tokens)
+	out := NewCOut(namespace, ioutputType)
+	models, err := parser.Parse(input)
 	if err != nil {
 		println(err)
 		os.Exit(2)
 		return
 	} else {
+		for _, v := range models {
+			out.addClass(v.Name)
+			for _, vv := range v.Vars {
+				out.addVar(vv.Name, vv.Type)
+			}
+			out.closeClass()
+		}
+
 		if outFile == "stdout" {
 			fmt.Print(out.header(""))
 			fmt.Print(out.body(""))
 		} else {
-			cout := out.(*Cpp)
-			ioutil.WriteFile(outFile+".hpp", []byte(cout.header(outFile+".hpp")), 0644)
-			ioutil.WriteFile(outFile+".cpp", []byte(cout.body(outFile+".hpp")), 0644)
+			ioutil.WriteFile(outFile+".hpp", []byte(out.header(outFile+".hpp")), 0644)
+			ioutil.WriteFile(outFile+".cpp", []byte(out.body(outFile+".hpp")), 0644)
 		}
 	}
 }
 
-func isScalar(v string) bool {
-	switch v {
-	case "bool", "int", "double", "float32", "float64", "string", "unknown":
-		return true
-	}
-	return false
-}
-
-/*
-  Topicologically sorts models to be sure they are declared
-  in a workable order.
-*/
-func topSortModels(models []*Model) []*Model {
-	type topSortNode struct {
-		model                 *Model
-		remainingDependancies int
-		//indices of if dependents
-		dependents []string
-	}
-
-	out := make([]*Model, len(models))
-	m := make(map[string]*topSortNode)
-	a := make([]*topSortNode, len(models))
-	//build name map
-	for i, v := range models {
-		node := new(topSortNode)
-		node.model = v
-		a[i] = node
-		m[v.Name] = node
-	}
-	//build dependency structure
-	for _, v := range a {
-		for _, vv := range v.model.Vars {
-			t := vv.Type[len(vv.Type)-1].Type
-			if !isScalar(t) {
-				if node, ok := m[t]; ok {
-					node.dependents = append(node.dependents, v.model.Name)
-					v.remainingDependancies++
-				} else {
-					println(fmt.Sprintf("Error: unrecognized type: %s", t))
-					os.Exit(3)
-				}
-			}
-		}
-	}
-
-	index := 0
-	cyclicalDeps := false
-	//sort
-	for len(a) != 0 && !cyclicalDeps {
-		cyclicalDeps = true
-		for i := 0; i < len(a); i++ {
-			v := a[i]
-			if v.remainingDependancies < 1 {
-				cyclicalDeps = false
-				out[index] = v.model
-				index++
-				a[i] = a[len(a)-1]
-				a = a[:len(a)-1]
-				for _, vv := range v.dependents {
-					m[vv].remainingDependancies--
-				}
-			}
-		}
-	}
-	if cyclicalDeps {
-		println(fmt.Sprintf("Error: cyclical dependency detected"))
-		os.Exit(4)
-	}
-	return out
-}

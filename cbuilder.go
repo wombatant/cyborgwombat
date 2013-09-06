@@ -18,6 +18,7 @@ package main
 import (
 	"strconv"
 	"strings"
+	"./parser"
 )
 
 const (
@@ -61,12 +62,12 @@ func (me *Cpp) typeMap(t string) string {
 	return t
 }
 
-func (me *Cpp) buildTypeDec(t string, index []VarType) string {
+func (me *Cpp) buildTypeDec(t string, index []parser.VarType) string {
 	array := ""
 	out := ""
 	for i := 0; i < len(index); i++ {
-		if i != len(index) - 1 && index[i].Type == "array" {
-				array += "[" + index[i].Index + "]"
+		if i != len(index)-1 && index[i].Type == "array" {
+			array += "[" + index[i].Index + "]"
 		} else if index[i].Type == "slice" {
 			out += "std::vector< "
 			array += " >"
@@ -79,7 +80,7 @@ func (me *Cpp) buildTypeDec(t string, index []VarType) string {
 	return out
 }
 
-func (me *Cpp) buildVar(v, t string, index []VarType) string {
+func (me *Cpp) buildVar(v, t string, index []parser.VarType) string {
 	array := ""
 	if len(index) > 0 && index[len(index)-1].Type == "array" {
 		array = "[" + index[len(index)-1].Index + "]"
@@ -87,7 +88,7 @@ func (me *Cpp) buildVar(v, t string, index []VarType) string {
 	return me.buildTypeDec(t, index) + " " + v + array + ";"
 }
 
-func (me *Cpp) addVar(v string, index []VarType) {
+func (me *Cpp) addVar(v string, index []parser.VarType) {
 	jsonV := v
 	if len(v) > 0 && v[0] < 91 {
 		v = string(v[0]+32) + v[1:]
@@ -157,7 +158,7 @@ func (me *Cpp) endsWithClose() bool {
 	return me.hpp[len(me.hpp)-3:] == "};\n"
 }
 
-func (me *Cpp) buildConstructor(v, t string, index []VarType) string {
+func (me *Cpp) buildConstructor(v, t string, index []parser.VarType) string {
 	if len(index) < 1 {
 		switch t {
 		case "bool", "int", "double":
@@ -174,7 +175,7 @@ func (me *Cpp) buildConstructor(v, t string, index []VarType) string {
 	return ""
 }
 
-func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []VarType, depth int) string {
+func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parser.VarType, depth int) string {
 	if depth == 0 {
 		code.PushBlock()
 		code.Insert("modelmaker::JsonValOut obj0 = modelmaker::objRead(inObj, \"" + jsonV + "\");")
@@ -261,7 +262,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []VarTy
 	return code.String()
 }
 
-func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, index []VarType) {
+func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, index []parser.VarType) {
 	is := "i"
 	ns := "n"
 	for i := 0; i < depth; i++ {
@@ -324,7 +325,7 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 	}
 }
 
-func (me *Cpp) buildWriter(v, jsonV, t string, index []VarType) string {
+func (me *Cpp) buildWriter(v, jsonV, t string, index []parser.VarType) string {
 	var out CppCode
 	out.tabs = "\t"
 	out.PushBlock()

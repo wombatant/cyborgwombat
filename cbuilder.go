@@ -16,9 +16,9 @@
 package main
 
 import (
+	"./parser"
 	"strconv"
 	"strings"
-	"./parser"
 )
 
 const (

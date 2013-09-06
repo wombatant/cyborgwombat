@@ -16,11 +16,11 @@
 package main
 
 import (
+	"./parser"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"./parser"
 )
 
 func main() {
@@ -78,4 +78,3 @@ func parseFile(path, outFile, namespace, outputType string) {
 		}
 	}
 }
-

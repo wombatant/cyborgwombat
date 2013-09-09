@@ -25,10 +25,10 @@ bool Model::loadFile(string path) {
 	return false;
 }
 
-void Model::writeFile(string path) {
+void Model::writeFile(string path, modelmaker::JsonSerializationSettings sttngs) {
 	std::ofstream out;
 	out.open(modelmaker::toCString(path));
-	std::string json = modelmaker::toStdString(write());
+	std::string json = modelmaker::toStdString(write(sttngs));
 	out << json << "\n";
 	out.close();
 }
@@ -39,10 +39,10 @@ void Model::load(string json) {
 	modelmaker::decref(obj);
 }
 
-string Model::write() {
+string Model::write(modelmaker::JsonSerializationSettings sttngs) {
 	modelmaker::JsonValOut val = buildJsonObj();
 	modelmaker::JsonObjOut obj = modelmaker::toObj(val);
-	return modelmaker::write(obj);
+	return modelmaker::write(obj, sttngs);
 }
 
 unknown::unknown() {

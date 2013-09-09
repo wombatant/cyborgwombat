@@ -30,6 +30,11 @@ namespace models {
 
 namespace modelmaker {
 
+enum JsonSerializationSettings {
+	Compact = 0,
+	Readable = 1
+};
+
 #ifdef USING_QT
 typedef QJsonObject& JsonObj;
 typedef QJsonValue&  JsonVal;
@@ -383,7 +388,7 @@ inline JsonObjIteratorVal iteratorValue(JsonObjIterator i) {
 	return i.value();
 }
 
-inline string write(JsonObj obj) {
+inline string write(JsonObj obj, JsonSerializationSettings sttngs) {
 	QJsonDocument doc(obj);
 	return doc.toJson();
 }
@@ -403,8 +408,8 @@ inline JsonObjOut read(const char *json) {
 	return json_loads(json, 0, NULL);
 }
 
-inline string write(JsonObj obj) {
-	char *tmp = json_dumps(obj, JSON_COMPACT);
+inline string write(JsonObj obj, JsonSerializationSettings sttngs) {
+	char *tmp = json_dumps(obj, sttngs == Compact ? JSON_COMPACT : JSON_INDENT(3));
 	if (!tmp)
 		return "{}";
 	string out = tmp;
@@ -558,9 +563,9 @@ class Model {
 	friend class unknown;
 	public:
 		bool loadFile(string path);
-		void writeFile(string path);
+		void writeFile(string path, modelmaker::JsonSerializationSettings sttngs = Compact);
 		void load(string json);
-		string write();
+		string write(modelmaker::JsonSerializationSettings sttngs = Compact);
 #ifdef USING_QT
 		bool loadJsonObj(modelmaker::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
 #endif

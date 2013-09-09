@@ -23,6 +23,6 @@ int main() {
 	Model1 mod;
 	mod.load("{\"Field1\": \"Ni!\", \"Field2\": 1, \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]], \"Field5\": {\"Narf\": \"Ni\"}}");
 	mod.field1 = "Narf!";
-	cout << mod.write() << endl;
+	cout << mod.write(modelmaker::Readable) << endl;
 	return 0;
 }

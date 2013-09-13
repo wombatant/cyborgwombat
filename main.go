@@ -32,7 +32,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("modelmaker version 0.9.3")
+		fmt.Println("cyborgbear version 0.9.3")
 		return
 	}
 	parseFile(*in, *out, *namespace, *outputType)

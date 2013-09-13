@@ -390,7 +390,7 @@ inline JsonObjIteratorVal iteratorValue(JsonObjIterator i) {
 
 inline string write(JsonObj obj, JsonSerializationSettings sttngs) {
 	QJsonDocument doc(obj);
-	return doc.toJson();
+	return doc.toJson(sttngs == Compact ? Compact : Indented);
 }
 
 #else

@@ -747,7 +747,7 @@ inline JsonObjIteratorVal iteratorValue(JsonObjIterator i) {
 
 inline string write(JsonObj obj, JsonSerializationSettings sttngs) {
 	QJsonDocument doc(obj);
-	return doc.toJson();
+	return doc.toJson(sttngs == Compact ? QJsonDocument::Compact : QJsonDocument::Indented);
 }
 
 #else
@@ -974,7 +974,6 @@ class unknown: public Model {
 
 func (me *Cpp) buildModelmakerDefsBody(headername string) string {
 	out := `
-
 #include <fstream>
 #include "` + headername + `"
 

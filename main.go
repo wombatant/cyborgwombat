@@ -25,14 +25,14 @@ import (
 
 func main() {
 	out := flag.String("o", "stdout", "File or file set(languages with header files) to write the output to")
-	in := flag.String("i", "", "The model file to generate JSON-C code for")
+	in := flag.String("i", "", "The model file to generate JSON serialization code for")
 	namespace := flag.String("n", "models", "Namespace for the models")
 	outputType := flag.String("t", "cpp-jansson", "Output type(cpp-jansson, cpp-qt)")
 	version := flag.Bool("v", false, "version")
 	flag.Parse()
 
 	if *version {
-		fmt.Println("cyborgbear version 0.9.3")
+		fmt.Println("cyborgbear version 0.10.0")
 		return
 	}
 	parseFile(*in, *out, *namespace, *outputType)

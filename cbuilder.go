@@ -55,7 +55,7 @@ func (me *Cpp) typeMap(t string) string {
 	case "float", "float32", "float64", "double":
 		return "double"
 	case "unknown":
-		return "modelmaker::unknown"
+		return "cyborgbear::unknown"
 	default:
 		return t
 	}
@@ -105,17 +105,17 @@ func (me *Cpp) addVar(v string, index []parser.VarType) {
 
 func (me *Cpp) addClass(v string) {
 	me.hpp += "\nnamespace " + me.namespace + " {\n"
-	me.hpp += "\nusing modelmaker::string;\n"
-	me.hpp += "\nclass " + v + ": public modelmaker::Model {\n"
+	me.hpp += "\nusing cyborgbear::string;\n"
+	me.hpp += "\nclass " + v + ": public cyborgbear::Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
-	me.hpp += "\n\t\tbool loadJsonObj(modelmaker::JsonVal obj);\n"
-	me.hpp += "\n\t\tmodelmaker::JsonValOut buildJsonObj();\n\n"
+	me.hpp += "\n\t\tbool loadJsonObj(cyborgbear::JsonVal obj);\n"
+	me.hpp += "\n\t\tcyborgbear::JsonValOut buildJsonObj();\n\n"
 	me.constructor += v + "::" + v + "() {\n"
-	me.reader += "bool " + v + "::loadJsonObj(modelmaker::JsonVal in) {\n"
-	me.reader += "\tmodelmaker::JsonObjOut inObj = modelmaker::toObj(in);"
-	me.writer += "modelmaker::JsonValOut " + v + `::buildJsonObj() {
-	modelmaker::JsonObjOut obj = modelmaker::newJsonObj();`
+	me.reader += "bool " + v + "::loadJsonObj(cyborgbear::JsonVal in) {\n"
+	me.reader += "\tcyborgbear::JsonObjOut inObj = cyborgbear::toObj(in);"
+	me.writer += "cyborgbear::JsonValOut " + v + `::buildJsonObj() {
+	cyborgbear::JsonObjOut obj = cyborgbear::newJsonObj();`
 }
 
 func (me *Cpp) closeClass() {
@@ -178,7 +178,7 @@ func (me *Cpp) buildConstructor(v, t string, index []parser.VarType) string {
 func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parser.VarType, depth int) string {
 	if depth == 0 {
 		code.PushBlock()
-		code.Insert("modelmaker::JsonValOut obj0 = modelmaker::objRead(inObj, \"" + jsonV + "\");")
+		code.Insert("cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, \"" + jsonV + "\");")
 	}
 	if len(index) > 0 {
 		is := "i"
@@ -186,25 +186,25 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 			is += "i"
 		}
 		if index[0].Type == "array" || index[0].Type == "slice" {
-			code.PushIfBlock("!modelmaker::isNull(obj" + strconv.Itoa(depth) + ") && modelmaker::isArray(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("modelmaker::JsonArrayOut array" + strconv.Itoa(depth) + " = modelmaker::toArray(obj" + strconv.Itoa(depth) + ");")
-			code.Insert("unsigned int size = modelmaker::arraySize(array" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("!cyborgbear::isNull(obj" + strconv.Itoa(depth) + ") && cyborgbear::isArray(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("cyborgbear::JsonArrayOut array" + strconv.Itoa(depth) + " = cyborgbear::toArray(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("unsigned int size = cyborgbear::arraySize(array" + strconv.Itoa(depth) + ");")
 			if index[0].Type == "slice" {
 				code.Insert("this->" + v + sub + ".resize(size);")
 			}
 			code.PushForBlock("unsigned int " + is + " = 0; " + is + " < size; " + is + "++")
-			code.Insert("modelmaker::JsonValOut obj" + strconv.Itoa(depth+1) + " = modelmaker::arrayRead(array" + strconv.Itoa(depth) + ", " + is + ");")
+			code.Insert("cyborgbear::JsonValOut obj" + strconv.Itoa(depth+1) + " = cyborgbear::arrayRead(array" + strconv.Itoa(depth) + ", " + is + ");")
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0].Type == "map" {
-			code.PushIfBlock("!modelmaker::isNull(obj" + strconv.Itoa(depth) + ") && modelmaker::isObj(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("modelmaker::JsonObjOut map" + strconv.Itoa(depth) + " = modelmaker::toObj(obj" + strconv.Itoa(depth) + ");")
-			code.PushForBlock("modelmaker::JsonObjIterator it" + strconv.Itoa(depth+1) + " = modelmaker::iterator(map" + strconv.Itoa(depth) + "); !modelmaker::iteratorAtEnd(it" + strconv.Itoa(depth+1) + ", map" + strconv.Itoa(depth) + "); " + "it" + strconv.Itoa(depth+1) + " = modelmaker::iteratorNext(map" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
+			code.PushIfBlock("!cyborgbear::isNull(obj" + strconv.Itoa(depth) + ") && cyborgbear::isObj(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("cyborgbear::JsonObjOut map" + strconv.Itoa(depth) + " = cyborgbear::toObj(obj" + strconv.Itoa(depth) + ");")
+			code.PushForBlock("cyborgbear::JsonObjIterator it" + strconv.Itoa(depth+1) + " = cyborgbear::iterator(map" + strconv.Itoa(depth) + "); !cyborgbear::iteratorAtEnd(it" + strconv.Itoa(depth+1) + ", map" + strconv.Itoa(depth) + "); " + "it" + strconv.Itoa(depth+1) + " = cyborgbear::iteratorNext(map" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
 			code.Insert(index[0].Index + " " + is + ";")
-			code.Insert("modelmaker::JsonValOut obj" + strconv.Itoa(depth+1) + " = modelmaker::iteratorValue(it" + strconv.Itoa(depth+1) + ");")
+			code.Insert("cyborgbear::JsonValOut obj" + strconv.Itoa(depth+1) + " = cyborgbear::iteratorValue(it" + strconv.Itoa(depth+1) + ");")
 			code.PushBlock()
-			code.Insert("std::string key = modelmaker::toStdString(modelmaker::iteratorKey(it" + strconv.Itoa(depth+1) + "));")
+			code.Insert("std::string key = cyborgbear::toStdString(cyborgbear::iteratorKey(it" + strconv.Itoa(depth+1) + "));")
 			switch index[0].Index {
 			case "bool":
 				code.Insert(is + " = key == \"true\";")
@@ -229,26 +229,26 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 		code.PushBlock()
 		switch t { //type
 		case "int":
-			code.PushIfBlock("modelmaker::isInt(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("this->" + v + sub + " = modelmaker::toInt(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("cyborgbear::isInt(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = cyborgbear::toInt(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "double":
-			code.PushIfBlock("modelmaker::isDouble(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("this->" + v + sub + " = modelmaker::toDouble(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("cyborgbear::isDouble(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = cyborgbear::toDouble(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "bool":
-			code.PushIfBlock("modelmaker::isBool(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("this->" + v + sub + " = modelmaker::toBool(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("cyborgbear::isBool(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = cyborgbear::toBool(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		case "string":
-			code.PushIfBlock("modelmaker::isString(obj" + strconv.Itoa(depth) + ")")
-			code.Insert("this->" + v + sub + " = modelmaker::toString(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("cyborgbear::isString(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("this->" + v + sub + " = cyborgbear::toString(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
-		case "modelmaker::unknown":
+		case "cyborgbear::unknown":
 			code.Insert("this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
 		default:
-			code.Insert("modelmaker::JsonValOut finalObj = modelmaker::toObj(obj" + strconv.Itoa(depth) + ");")
-			code.PushIfBlock("modelmaker::isObj(finalObj)")
+			code.Insert("cyborgbear::JsonValOut finalObj = cyborgbear::toObj(obj" + strconv.Itoa(depth) + ");")
+			code.PushIfBlock("cyborgbear::isObj(finalObj)")
 			code.Insert("this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
 		}
@@ -272,18 +272,18 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 
 	if len(index) > depth {
 		if index[depth].Type == "array" || index[depth].Type == "slice" {
-			code.Insert("modelmaker::JsonArrayOut out" + strconv.Itoa(len(index[depth:])) + " = modelmaker::newJsonArray();")
+			code.Insert("cyborgbear::JsonArrayOut out" + strconv.Itoa(len(index[depth:])) + " = cyborgbear::newJsonArray();")
 			if index[depth].Type == "slice" {
 				code.PushForBlock("unsigned int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
 			} else { // array
 				code.PushForBlock("unsigned int " + is + " = 0; " + is + " < " + index[depth].Index + "; " + is + "++")
 			}
 			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+1, index)
-			code.Insert("modelmaker::arrayAdd(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
-			code.Insert("modelmaker::decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			code.Insert("cyborgbear::arrayAdd(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			code.Insert("cyborgbear::decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()
 		} else if index[depth].Type == "map" {
-			code.Insert("modelmaker::JsonObjOut out" + strconv.Itoa(len(index[depth:])) + " = modelmaker::newJsonObj();")
+			code.Insert("cyborgbear::JsonObjOut out" + strconv.Itoa(len(index[depth:])) + " = cyborgbear::newJsonObj();")
 			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator " + ns + " = this->" + v + sub + ".begin(); " + ns + " != this->" + v + sub + ".end(); ++" + ns)
 			switch index[depth].Index {
 			case "bool":
@@ -292,35 +292,35 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 				code.Insert("std::stringstream s;")
 				code.Insert("string key;")
 				code.Insert("std::string tmp;")
-				code.Insert("s << modelmaker::toStdString(modelmaker::toString(" + ns + "->first));")
+				code.Insert("s << cyborgbear::toStdString(cyborgbear::toString(" + ns + "->first));")
 				code.Insert("s >> tmp;")
-				code.Insert("key = modelmaker::toString(tmp);")
+				code.Insert("key = cyborgbear::toString(tmp);")
 			case "int", "double":
 				code.Insert("std::stringstream s;")
 				code.Insert("string key;")
 				code.Insert("std::string tmp;")
 				code.Insert("s << " + ns + "->first;")
 				code.Insert("s >> tmp;")
-				code.Insert("key = modelmaker::toString(tmp);")
+				code.Insert("key = cyborgbear::toString(tmp);")
 			}
 			me.buildArrayWriter(code, t, v, sub+"["+ns+"->first]", depth+1, index)
-			code.Insert("modelmaker::objSet(out" + strconv.Itoa(len(index[depth:])) + ", key, out" + strconv.Itoa(len(index[depth:])-1) + ");")
-			code.Insert("modelmaker::decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
+			code.Insert("cyborgbear::objSet(out" + strconv.Itoa(len(index[depth:])) + ", key, out" + strconv.Itoa(len(index[depth:])-1) + ");")
+			code.Insert("cyborgbear::decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()
 		}
 	} else {
 		switch t {
 		case "int":
-			code.Insert("modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->" + v + sub + ");")
+			code.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + sub + ");")
 		case "double":
-			code.Insert("modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->" + v + sub + ");")
+			code.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + sub + ");")
 		case "bool":
-			code.Insert("modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->" + v + sub + ");")
+			code.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + sub + ");")
 		case "string":
-			code.Insert("modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->" + v + sub + ");")
+			code.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + sub + ");")
 		default:
-			code.Insert("modelmaker::JsonValOut obj0 = this->" + v + sub + ".buildJsonObj();")
-			code.Insert("modelmaker::JsonValOut out0 = obj0;")
+			code.Insert("cyborgbear::JsonValOut obj0 = this->" + v + sub + ".buildJsonObj();")
+			code.Insert("cyborgbear::JsonValOut out0 = obj0;")
 		}
 	}
 }
@@ -331,24 +331,24 @@ func (me *Cpp) buildWriter(v, jsonV, t string, index []parser.VarType) string {
 	out.PushBlock()
 	if len(index) > 0 {
 		me.buildArrayWriter(&out, t, v, "", 0, index)
-		out.Insert("modelmaker::objSet(obj, \"" + jsonV + "\", out" + strconv.Itoa(len(index)) + ");")
-		out.Insert("modelmaker::decref(out" + strconv.Itoa(len(index)) + ");")
+		out.Insert("cyborgbear::objSet(obj, \"" + jsonV + "\", out" + strconv.Itoa(len(index)) + ");")
+		out.Insert("cyborgbear::decref(out" + strconv.Itoa(len(index)) + ");")
 	} else {
 		switch t {
 		case "int":
-			out.Insert("modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->" + v + ");")
+			out.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + ");")
 		case "double":
-			out.Insert("modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->" + v + ");")
+			out.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + ");")
 		case "bool":
-			out.Insert("modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->" + v + ");")
+			out.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + ");")
 		case "string":
-			out.Insert("modelmaker::JsonValOut out0 = modelmaker::toJsonVal(this->" + v + ");")
+			out.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + ");")
 		default:
-			out.Insert("modelmaker::JsonValOut obj0 = this->" + v + ".buildJsonObj();")
-			out.Insert("modelmaker::JsonValOut out0 = obj0;")
+			out.Insert("cyborgbear::JsonValOut obj0 = this->" + v + ".buildJsonObj();")
+			out.Insert("cyborgbear::JsonValOut out0 = obj0;")
 		}
-		out.Insert("modelmaker::objSet(obj, \"" + jsonV + "\", out0);")
-		out.Insert("modelmaker::decref(out0);")
+		out.Insert("cyborgbear::objSet(obj, \"" + jsonV + "\", out0);")
+		out.Insert("cyborgbear::decref(out0);")
 	}
 	out.PopBlock()
 	return out.String()
@@ -385,7 +385,7 @@ func (me *Cpp) buildModelmakerDefsHeader() string {
 
 namespace ` + me.namespace + ` {
 
-namespace modelmaker {
+namespace cyborgbear {
 
 enum JsonSerializationSettings {
 	Compact = 0,
@@ -679,12 +679,12 @@ inline JsonArrayOut newJsonArray() {
 }
 
 inline void arrayAdd(JsonArray a, JsonArray v) {
-	JsonValOut tmp = modelmaker::toJsonVal(v);
+	JsonValOut tmp = cyborgbear::toJsonVal(v);
 	a.append(tmp);
 }
 
 inline void arrayAdd(JsonArray a, JsonObj v) {
-	JsonValOut tmp = modelmaker::toJsonVal(v);
+	JsonValOut tmp = cyborgbear::toJsonVal(v);
 	a.append(tmp);
 }
 
@@ -707,12 +707,12 @@ inline JsonObjOut newJsonObj() {
 }
 
 inline void objSet(JsonObj o, string k, JsonArray v) {
-	JsonValOut tmp = modelmaker::toJsonVal(v);
+	JsonValOut tmp = cyborgbear::toJsonVal(v);
 	o.insert(k, tmp);
 }
 
 inline void objSet(JsonObj o, string k, JsonObj v) {
-	JsonValOut tmp = modelmaker::toJsonVal(v);
+	JsonValOut tmp = cyborgbear::toJsonVal(v);
 	o.insert(k, tmp);
 }
 
@@ -771,7 +771,7 @@ inline string write(JsonObj obj, JsonSerializationSettings sttngs) {
 		return "{}";
 	string out = tmp;
 	free(tmp);
-	modelmaker::decref(obj);
+	cyborgbear::decref(obj);
 	return out;
 }
 
@@ -920,20 +920,20 @@ class Model {
 	friend class unknown;
 	public:
 		bool loadFile(string path);
-		void writeFile(string path, modelmaker::JsonSerializationSettings sttngs = Compact);
+		void writeFile(string path, cyborgbear::JsonSerializationSettings sttngs = Compact);
 		void load(string json);
-		string write(modelmaker::JsonSerializationSettings sttngs = Compact);
+		string write(cyborgbear::JsonSerializationSettings sttngs = Compact);
 #ifdef USING_QT
-		bool loadJsonObj(modelmaker::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
+		bool loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
 #endif
 	protected:
-		virtual modelmaker::JsonValOut buildJsonObj() = 0;
-		virtual bool loadJsonObj(modelmaker::JsonVal obj) = 0;
+		virtual cyborgbear::JsonValOut buildJsonObj() = 0;
+		virtual bool loadJsonObj(cyborgbear::JsonVal obj) = 0;
 };
 
 class unknown: public Model {
 	private:
-		modelmaker::JsonValOut m_obj;
+		cyborgbear::JsonValOut m_obj;
 	public:
 		unknown();
 		unknown(Model *v);
@@ -944,8 +944,8 @@ class unknown: public Model {
 		virtual ~unknown();
 
 		bool loaded();
-		bool loadJsonObj(modelmaker::JsonVal obj);
-		modelmaker::JsonValOut buildJsonObj();
+		bool loadJsonObj(cyborgbear::JsonVal obj);
+		cyborgbear::JsonValOut buildJsonObj();
 
 		bool toBool();
 		int toInt();
@@ -978,11 +978,11 @@ func (me *Cpp) buildModelmakerDefsBody(headername string) string {
 #include "` + headername + `"
 
 using namespace ` + me.namespace + `;
-using namespace ` + me.namespace + `::modelmaker;
+using namespace ` + me.namespace + `::cyborgbear;
 
 bool Model::loadFile(string path) {
 	std::ifstream in;
-	in.open(modelmaker::toCString(path));
+	in.open(cyborgbear::toCString(path));
 	std::string json;
 	if (in.is_open()) {
 		while (in.good()) {
@@ -991,30 +991,30 @@ bool Model::loadFile(string path) {
 			json += s;
 		}
 		in.close();
-		load(modelmaker::toString(json));
+		load(cyborgbear::toString(json));
 		return true;
 	}
 	return false;
 }
 
-void Model::writeFile(string path, modelmaker::JsonSerializationSettings sttngs) {
+void Model::writeFile(string path, cyborgbear::JsonSerializationSettings sttngs) {
 	std::ofstream out;
-	out.open(modelmaker::toCString(path));
-	std::string json = modelmaker::toStdString(write(sttngs));
+	out.open(cyborgbear::toCString(path));
+	std::string json = cyborgbear::toStdString(write(sttngs));
 	out << json << "\n";
 	out.close();
 }
 
 void Model::load(string json) {
-	modelmaker::JsonValOut obj = modelmaker::read(modelmaker::toCString(json));
+	cyborgbear::JsonValOut obj = cyborgbear::read(cyborgbear::toCString(json));
 	loadJsonObj(obj);
-	modelmaker::decref(obj);
+	cyborgbear::decref(obj);
 }
 
-string Model::write(modelmaker::JsonSerializationSettings sttngs) {
-	modelmaker::JsonValOut val = buildJsonObj();
-	modelmaker::JsonObjOut obj = modelmaker::toObj(val);
-	return modelmaker::write(obj, sttngs);
+string Model::write(cyborgbear::JsonSerializationSettings sttngs) {
+	cyborgbear::JsonValOut val = buildJsonObj();
+	cyborgbear::JsonObjOut obj = cyborgbear::toObj(val);
+	return cyborgbear::write(obj, sttngs);
 }
 
 unknown::unknown() {
@@ -1059,108 +1059,108 @@ unknown::unknown(string v) {
 }
 
 unknown::~unknown() {
-	modelmaker::decref(m_obj);
+	cyborgbear::decref(m_obj);
 }
 
-bool unknown::loadJsonObj(modelmaker::JsonVal obj) {
+bool unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 #ifdef USING_JANSSON
-	m_obj = modelmaker::incref(obj);
+	m_obj = cyborgbear::incref(obj);
 #else
 	m_obj = obj;
 #endif
-	return !modelmaker::isNull(obj);
+	return !cyborgbear::isNull(obj);
 }
 
-modelmaker::JsonValOut unknown::buildJsonObj() {
+cyborgbear::JsonValOut unknown::buildJsonObj() {
 #ifdef USING_JANSSON
-	return modelmaker::incref(m_obj);
+	return cyborgbear::incref(m_obj);
 #else
 	return m_obj;
 #endif
 }
 
 bool unknown::loaded() {
-	return !modelmaker::isNull(m_obj);
+	return !cyborgbear::isNull(m_obj);
 }
 
 bool unknown::isBool() {
-	return !modelmaker::isNull(m_obj) && modelmaker::isBool(m_obj);
+	return !cyborgbear::isNull(m_obj) && cyborgbear::isBool(m_obj);
 }
 
 bool unknown::isInt() {
-	return !modelmaker::isNull(m_obj) && modelmaker::isInt(m_obj);
+	return !cyborgbear::isNull(m_obj) && cyborgbear::isInt(m_obj);
 }
 
 bool unknown::isDouble() {
-	return !modelmaker::isNull(m_obj) && modelmaker::isDouble(m_obj);
+	return !cyborgbear::isNull(m_obj) && cyborgbear::isDouble(m_obj);
 }
 
 bool unknown::isString() {
-	return !modelmaker::isNull(m_obj) && modelmaker::isString(m_obj);
+	return !cyborgbear::isNull(m_obj) && cyborgbear::isString(m_obj);
 }
 
 bool unknown::isObject() {
-	return !modelmaker::isNull(m_obj) && modelmaker::isObj(m_obj);
+	return !cyborgbear::isNull(m_obj) && cyborgbear::isObj(m_obj);
 }
 
 bool unknown::toBool() {
-	return modelmaker::toBool(m_obj);
+	return cyborgbear::toBool(m_obj);
 }
 
 int unknown::toInt() {
-	return modelmaker::toInt(m_obj);
+	return cyborgbear::toInt(m_obj);
 }
 
 double unknown::toDouble() {
-	return modelmaker::toDouble(m_obj);
+	return cyborgbear::toDouble(m_obj);
 }
 
 string unknown::toString() {
-	return modelmaker::toString(m_obj);
+	return cyborgbear::toString(m_obj);
 }
 
 void unknown::set(Model *v) {
-	modelmaker::JsonValOut obj = v->buildJsonObj();
-	modelmaker::JsonVal old = m_obj;
+	cyborgbear::JsonValOut obj = v->buildJsonObj();
+	cyborgbear::JsonVal old = m_obj;
 	m_obj = obj;
-	if (!modelmaker::isNull(old)) {
-		modelmaker::decref(old);
+	if (!cyborgbear::isNull(old)) {
+		cyborgbear::decref(old);
 	}
 }
 
 void unknown::set(bool v) {
-	modelmaker::JsonValOut obj = modelmaker::toJsonVal(v);
-	modelmaker::JsonVal old = m_obj;
+	cyborgbear::JsonValOut obj = cyborgbear::toJsonVal(v);
+	cyborgbear::JsonVal old = m_obj;
 	m_obj = obj;
-	if (!modelmaker::isNull(old)) {
-		modelmaker::decref(old);
+	if (!cyborgbear::isNull(old)) {
+		cyborgbear::decref(old);
 	}
 }
 
 void unknown::set(int v) {
-	modelmaker::JsonValOut obj = modelmaker::toJsonVal(v);
-	modelmaker::JsonVal old = m_obj;
+	cyborgbear::JsonValOut obj = cyborgbear::toJsonVal(v);
+	cyborgbear::JsonVal old = m_obj;
 	m_obj = obj;
-	if (!modelmaker::isNull(old)) {
-		modelmaker::decref(old);
+	if (!cyborgbear::isNull(old)) {
+		cyborgbear::decref(old);
 	}
 }
 
 void unknown::set(double v) {
-	modelmaker::JsonValOut obj = modelmaker::toJsonVal(v);
-	modelmaker::JsonVal old = m_obj;
+	cyborgbear::JsonValOut obj = cyborgbear::toJsonVal(v);
+	cyborgbear::JsonVal old = m_obj;
 	m_obj = obj;
-	if (!modelmaker::isNull(old)) {
-		modelmaker::decref(old);
+	if (!cyborgbear::isNull(old)) {
+		cyborgbear::decref(old);
 	}
 }
 
 void unknown::set(string v) {
-	modelmaker::JsonValOut obj = modelmaker::toJsonVal(v);
-	modelmaker::JsonVal old = m_obj;
+	cyborgbear::JsonValOut obj = cyborgbear::toJsonVal(v);
+	cyborgbear::JsonVal old = m_obj;
 	m_obj = obj;
-	if (!modelmaker::isNull(old)) {
-		modelmaker::decref(old);
+	if (!cyborgbear::isNull(old)) {
+		cyborgbear::decref(old);
 	}
 }
 `

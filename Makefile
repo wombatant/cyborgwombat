@@ -1,6 +1,6 @@
 build:
-	go build -o modelmaker
+	go build -o cyborgbear
 install: build
-	cp modelmaker $(GOPATH)/bin
+	cp cyborgbear $(GOPATH)/bin
 fmt:
 	go fmt

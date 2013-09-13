@@ -1,9 +1,9 @@
 This syntax has not been heavily vetted and is not guaranteed to accurately express syntax used to parse model files.
 
-<model-list>			::= <model> | <model-list> <model>
+<model-list>			::= <model> | <model-list> <model> | ""
 <model>					::= <identifier> "\n" <variable>
 <variable>				::= "\t" <identifier> <whitespace> <type> "\n" | <variable> <variable>
-<whitespace>			::= " " <whitespace> | "\t" <whitespace> | ""
+<whitespace>			::= " " | "\t" | <whitespace> " " | <whitespace> "\t"
 <type>					::= <identifier>
 <identifier>			::= <word> | <word> <number> | <identifier> <identifier>
 <word>					::= <character> | <word> <character>

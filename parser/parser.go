@@ -125,12 +125,6 @@ func Parse(input string) ([]*Model, error) {
 	//parse into tokens
 	var tokens []lex.Token
 
-	//if len(input) < 2 {
-	//	return
-	//}
-	//for input[len(input)-2] == '\n' && input[len(input)-1] == '\n' {
-	//	input = input[:len(input)-1]
-	//}
 	symbols := []string{"[", "]", "#"}
 	keywords := []string{}
 	stringTypes := []lex.Pair{}

@@ -151,7 +151,11 @@ using std::stringstream;
 
 `
 	}
-	return include + me.constructor + me.reader + me.writer[:len(me.writer)-1]
+	writer := me.writer
+	if len(me.writer) > 1 {
+		writer = me.writer[:len(me.writer)-1]
+	}
+	return include + me.constructor + me.reader + writer
 }
 
 func (me *Cpp) endsWithClose() bool {

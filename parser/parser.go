@@ -16,7 +16,6 @@
 package parser
 
 import (
-	"errors"
 	"fmt"
 	"github.com/gtalent/lex"
 	"os"
@@ -37,11 +36,17 @@ type Model struct {
 	Vars []Var
 }
 
+/*
+	Return values:
+		* number of tokens
+		* number of lines
+		* error
+ */
 func processVariable(model *Model, tokens []lex.Token) (int, error) {
-	size := 3 // should be 1 less than the actual number parsed
+	size := 2 // should be 1 less than the actual number parsed
 
 	if len(tokens) < 4 {
-		return 0, errors.New("Incomplete variable")
+		return 0, fmt.Errorf("Error: incomplete variable")
 	}
 
 	var t []VarType
@@ -50,7 +55,7 @@ func processVariable(model *Model, tokens []lex.Token) (int, error) {
 		variable = tokens[1].String()
 		tokens = tokens[2:]
 	} else {
-		return 0, errors.New("Error: unexpected end of file")
+		return 0, fmt.Errorf("Error: unexpected end of file")
 	}
 	for {
 		if len(tokens) > 0 {
@@ -61,7 +66,7 @@ func processVariable(model *Model, tokens []lex.Token) (int, error) {
 				break
 			}
 		} else {
-			return 0, errors.New("Error: unexpected end of file")
+			return 0, fmt.Errorf("Error: unexpected end of file")
 		}
 	}
 	for tokens[0].String() == "[" || tokens[0].String() == "map" {
@@ -75,27 +80,40 @@ func processVariable(model *Model, tokens []lex.Token) (int, error) {
 				t = append(t, VarType{Type: "array", Index: tokens[1].String()})
 				tokens = tokens[3:]
 			} else {
-				return 0, errors.New("Unexpected token")
+				if len(tokens) > 2 {
+					return 0, fmt.Errorf("Error: unexpected token")
+				} else {
+					return 0, fmt.Errorf("Error: unexpected end of file")
+				}
 			}
 		} else if tokens[0].String() == "map" {
 			if len(tokens) > 4 && tokens[1].String() == "[" {
 				switch tokens[2].String() {
 				case "bool", "int", "float", "float32", "float64", "double", "string":
-					//TODO: check for appropriate closing bracket
 					size += 4
 					t = append(t, VarType{Type: "map", Index: tokens[2].String()})
+					if tokens[3].String() != "]" {
+						return 0, fmt.Errorf("Error: expected token \"]\" atfter map index type \"%s\", got \"%s\"", tokens[2].String(), tokens[3].String())
+					}
+					if tokens[4].Type() != lex.Identifier {
+						return 0, fmt.Errorf("Error: expected type after token \"]\", got \"%s\"", tokens[4].String())
+					}
 					tokens = tokens[4:]
 				default:
-					return 0, errors.New("Invalid map type, key must be bool, int, float, float32, float64, double, or string")
+					return 0, fmt.Errorf("Error: invalid map type, key must be bool, int, float, float32, float64, double, or string")
 				}
 			} else {
-				return 0, errors.New("Unexpected token")
+				if len(tokens) > 4 {
+					return 0, fmt.Errorf("Error: unexpected token")
+				} else {
+					return 0, fmt.Errorf("Error: unexpected end of file")
+				}
 			}
 		}
 	}
 	t = append(t, VarType{Type: tokens[0].String()})
 	if len(tokens) < 1 {
-		return 0, errors.New("Incomplete variable")
+		return 0, fmt.Errorf("Error: incomplete variable")
 	}
 	model.Vars = append(model.Vars, Var{Name: variable, Type: t})
 	return size, nil
@@ -111,7 +129,7 @@ func Parse(input string) ([]*Model, error) {
 	for input[len(input)-2] == '\n' && input[len(input)-1] == '\n' {
 		input = input[:len(input)-1]
 	}
-	symbols := []string{"[", "]"}
+	symbols := []string{"[", "]", "#"}
 	keywords := []string{}
 	stringTypes := []lex.Pair{}
 	commentTypes := []lex.Pair{}
@@ -129,21 +147,31 @@ func Parse(input string) ([]*Model, error) {
 	for i := 0; i < len(tokens); i++ {
 		t := tokens[i]
 		switch t.TokType {
+		case lex.Symbol:
+			if (t.String() == "#") {
+				for ; i < len(tokens); i++ {
+					if tokens[i].String() == "\n" {
+						break
+					}
+				}
+			}
 		case lex.Whitespace:
 			if t.String() == "\n" {
 				line++
 			} else if t.String() == "\t" {
-				var size int
-				size, err = processVariable(models[len(models)-1], tokens[i:])
-				if err != nil {
-					return models, err
+				size := 1
+				if len(tokens) > 1 && tokens[i+1].Type() == lex.Identifier {
+					size, err = processVariable(models[len(models)-1], tokens[i:])
+					if err != nil {
+						return models, fmt.Errorf("Error on line %d: \n\t%s", line, err)
+					}
 				}
 				i += size
 			}
 		case lex.Identifier:
 			models = append(models, &Model{Name: t.String()})
 		default:
-			err = errors.New(fmt.Sprintf("Error: world ended on line %d\n       Unexpected token", line+1))
+			err = fmt.Errorf("Error on line %d: \n\tError: unexpected token", line+1)
 			return models, err
 		}
 	}

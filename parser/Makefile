@@ -1,4 +1,4 @@
 build:
-	go build -o modelmaker
+	go build
 fmt:
 	go fmt

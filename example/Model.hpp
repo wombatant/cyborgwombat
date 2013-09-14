@@ -6,7 +6,7 @@
 
 //Generated Code
 
-#define USING_JANSSON
+#define CYBORGBEAR_USING_JANSSON
 
 #include <string>
 
@@ -633,6 +633,25 @@ class Model1: public cyborgbear::Model {
 		cyborgbear::unknown field2;
 		int field3[4];
 		std::vector< std::vector< string > > field4;
+};
+
+}
+
+
+namespace models {
+
+using cyborgbear::string;
+
+class Comment: public cyborgbear::Model {
+
+	public:
+
+		Comment();
+
+		bool loadJsonObj(cyborgbear::JsonVal obj);
+
+		cyborgbear::JsonValOut buildJsonObj();
+
 		std::map< string, string > field5;
 };
 

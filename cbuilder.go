@@ -359,7 +359,7 @@ func (me *Cpp) buildModelmakerDefsHeader() string {
 	if me.lib == USING_QT {
 		using = "USING_QT"
 	} else {
-		using = "USING_JANSSON"
+		using = "CYBORGBEAR_USING_JANSSON"
 	}
 	out := `//Generated Code
 
@@ -1063,7 +1063,7 @@ unknown::~unknown() {
 }
 
 bool unknown::loadJsonObj(cyborgbear::JsonVal obj) {
-#ifdef USING_JANSSON
+#ifdef CYBORGBEAR_USING_JANSSON
 	m_obj = cyborgbear::incref(obj);
 #else
 	m_obj = obj;
@@ -1072,7 +1072,7 @@ bool unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 }
 
 cyborgbear::JsonValOut unknown::buildJsonObj() {
-#ifdef USING_JANSSON
+#ifdef CYBORGBEAR_USING_JANSSON
 	return cyborgbear::incref(m_obj);
 #else
 	return m_obj;

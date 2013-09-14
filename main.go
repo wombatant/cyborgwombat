@@ -41,7 +41,7 @@ func main() {
 func parseFile(path, outFile, namespace, outputType string) {
 	ss, err := ioutil.ReadFile(path)
 	if err != nil {
-		println("Could not find or open specified model file")
+		fmt.Println("Could not find or open specified model file")
 		os.Exit(1)
 	}
 	input := string(ss)

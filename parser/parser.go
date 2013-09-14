@@ -37,11 +37,10 @@ type Model struct {
 }
 
 /*
-	Return values:
-		* number of tokens
-		* number of lines
-		* error
- */
+  Return values:
+    * number of tokens parsed
+    * error
+*/
 func processVariable(model *Model, tokens []lex.Token) (int, error) {
 	size := 2 // should be 1 less than the actual number parsed
 
@@ -148,7 +147,7 @@ func Parse(input string) ([]*Model, error) {
 		t := tokens[i]
 		switch t.TokType {
 		case lex.Symbol:
-			if (t.String() == "#") {
+			if t.String() == "#" {
 				for ; i < len(tokens); i++ {
 					if tokens[i].String() == "\n" {
 						break
@@ -218,7 +217,7 @@ func topSortModels(models []*Model) []*Model {
 					node.dependents = append(node.dependents, v.model.Name)
 					v.remainingDependancies++
 				} else {
-					println(fmt.Sprintf("Error: unrecognized type: %s", t))
+					fmt.Println(fmt.Sprintf("Error: unrecognized type: %s", t))
 					os.Exit(3)
 				}
 			}
@@ -245,7 +244,7 @@ func topSortModels(models []*Model) []*Model {
 		}
 	}
 	if cyclicalDeps {
-		println(fmt.Sprintf("Error: cyclical dependency detected"))
+		fmt.Println(fmt.Sprintf("Error: cyclical dependency detected"))
 		os.Exit(4)
 	}
 	return out

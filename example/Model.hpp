@@ -4,8 +4,6 @@
 #include <string>
 #include <sstream>
 
-//Generated Code
-
 #define CYBORGBEAR_USING_JANSSON
 
 #include <string>
@@ -13,7 +11,7 @@
 #include <vector>
 #include <map>
 
-#ifdef USING_QT
+#ifdef CYBORGBEAR_USING_QT
 #include <QString>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -35,7 +33,7 @@ enum JsonSerializationSettings {
 	Readable = 1
 };
 
-#ifdef USING_QT
+#ifdef CYBORGBEAR_USING_QT
 typedef QJsonObject& JsonObj;
 typedef QJsonValue&  JsonVal;
 typedef QJsonArray&  JsonArray;
@@ -140,7 +138,7 @@ inline string toString(string str) {
 }
 
 
-#ifdef USING_QT
+#ifdef CYBORGBEAR_USING_QT
 
 //string conversions
 inline std::string toStdString(string str) {
@@ -562,11 +560,27 @@ class unknown;
 class Model {
 	friend class unknown;
 	public:
-		bool loadFile(string path);
-		void writeFile(string path, cyborgbear::JsonSerializationSettings sttngs = Compact);
-		void load(string json);
-		string write(cyborgbear::JsonSerializationSettings sttngs = Compact);
-#ifdef USING_QT
+		/**
+		 * Loads fields of this Model from file of the given path.
+		 */
+		bool loadJsonFile(string path);
+
+		/**
+		 * Writes JSON representation of this Model to JSON file of the given path.
+		 */
+		void writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs = Compact);
+
+		/**
+		 * Loads fields of this Model from file of the given path.
+		 */
+		void fromJson(string json);
+
+		/**
+		 * Returns JSON representation of this Model.
+		 */
+		string toJson(cyborgbear::JsonSerializationSettings sttngs = Compact);
+
+#ifdef CYBORGBEAR_USING_QT
 		bool loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
 #endif
 	protected:
@@ -594,7 +608,7 @@ class unknown: public Model {
 		int toInt();
 		double toDouble();
 		string toString();
-		
+
 		bool isBool();
 		bool isInt();
 		bool isDouble();

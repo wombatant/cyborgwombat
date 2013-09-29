@@ -7,7 +7,7 @@
 using namespace models;
 using namespace models::cyborgbear;
 
-bool Model::loadFile(string path) {
+bool Model::loadJsonFile(string path) {
 	std::ifstream in;
 	in.open(cyborgbear::toCString(path));
 	std::string json;
@@ -18,68 +18,68 @@ bool Model::loadFile(string path) {
 			json += s;
 		}
 		in.close();
-		load(cyborgbear::toString(json));
+		fromJson(cyborgbear::toString(json));
 		return true;
 	}
 	return false;
 }
 
-void Model::writeFile(string path, cyborgbear::JsonSerializationSettings sttngs) {
+void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs) {
 	std::ofstream out;
 	out.open(cyborgbear::toCString(path));
-	std::string json = cyborgbear::toStdString(write(sttngs));
+	std::string json = cyborgbear::toStdString(toJson(sttngs));
 	out << json << "\n";
 	out.close();
 }
 
-void Model::load(string json) {
+void Model::fromJson(string json) {
 	cyborgbear::JsonValOut obj = cyborgbear::read(cyborgbear::toCString(json));
 	loadJsonObj(obj);
 	cyborgbear::decref(obj);
 }
 
-string Model::write(cyborgbear::JsonSerializationSettings sttngs) {
+string Model::toJson(cyborgbear::JsonSerializationSettings sttngs) {
 	cyborgbear::JsonValOut val = buildJsonObj();
 	cyborgbear::JsonObjOut obj = cyborgbear::toObj(val);
 	return cyborgbear::write(obj, sttngs);
 }
 
 unknown::unknown() {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 }
 
 unknown::unknown(Model *v) {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 	set(v);
 }
 
 unknown::unknown(bool v) {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 	set(v);
 }
 
 unknown::unknown(int v) {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 	set(v);
 }
 
 unknown::unknown(double v) {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 	set(v);
 }
 
 unknown::unknown(string v) {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 	set(v);

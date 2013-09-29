@@ -361,20 +361,18 @@ func (me *Cpp) buildWriter(v, jsonV, t string, index []parser.VarType) string {
 func (me *Cpp) buildModelmakerDefsHeader() string {
 	using := ""
 	if me.lib == USING_QT {
-		using = "USING_QT"
+		using = "CYBORGBEAR_USING_QT"
 	} else {
 		using = "CYBORGBEAR_USING_JANSSON"
 	}
-	out := `//Generated Code
-
-#define ` + using + `
+	out := `#define ` + using + `
 
 #include <string>
 
 #include <vector>
 #include <map>
 
-#ifdef USING_QT
+#ifdef CYBORGBEAR_USING_QT
 #include <QString>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -396,7 +394,7 @@ enum JsonSerializationSettings {
 	Readable = 1
 };
 
-#ifdef USING_QT
+#ifdef CYBORGBEAR_USING_QT
 typedef QJsonObject& JsonObj;
 typedef QJsonValue&  JsonVal;
 typedef QJsonArray&  JsonArray;
@@ -501,7 +499,7 @@ inline string toString(string str) {
 }
 
 
-#ifdef USING_QT
+#ifdef CYBORGBEAR_USING_QT
 
 //string conversions
 inline std::string toStdString(string str) {
@@ -923,11 +921,27 @@ class unknown;
 class Model {
 	friend class unknown;
 	public:
-		bool loadFile(string path);
-		void writeFile(string path, cyborgbear::JsonSerializationSettings sttngs = Compact);
-		void load(string json);
-		string write(cyborgbear::JsonSerializationSettings sttngs = Compact);
-#ifdef USING_QT
+		/**
+		 * Loads fields of this Model from file of the given path.
+		 */
+		bool loadJsonFile(string path);
+
+		/**
+		 * Writes JSON representation of this Model to JSON file of the given path.
+		 */
+		void writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs = Compact);
+
+		/**
+		 * Loads fields of this Model from file of the given path.
+		 */
+		void fromJson(string json);
+
+		/**
+		 * Returns JSON representation of this Model.
+		 */
+		string toJson(cyborgbear::JsonSerializationSettings sttngs = Compact);
+
+#ifdef CYBORGBEAR_USING_QT
 		bool loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
 #endif
 	protected:
@@ -955,7 +969,7 @@ class unknown: public Model {
 		int toInt();
 		double toDouble();
 		string toString();
-		
+
 		bool isBool();
 		bool isInt();
 		bool isDouble();
@@ -984,7 +998,7 @@ func (me *Cpp) buildModelmakerDefsBody(headername string) string {
 using namespace ` + me.namespace + `;
 using namespace ` + me.namespace + `::cyborgbear;
 
-bool Model::loadFile(string path) {
+bool Model::loadJsonFile(string path) {
 	std::ifstream in;
 	in.open(cyborgbear::toCString(path));
 	std::string json;
@@ -995,68 +1009,68 @@ bool Model::loadFile(string path) {
 			json += s;
 		}
 		in.close();
-		load(cyborgbear::toString(json));
+		fromJson(cyborgbear::toString(json));
 		return true;
 	}
 	return false;
 }
 
-void Model::writeFile(string path, cyborgbear::JsonSerializationSettings sttngs) {
+void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs) {
 	std::ofstream out;
 	out.open(cyborgbear::toCString(path));
-	std::string json = cyborgbear::toStdString(write(sttngs));
+	std::string json = cyborgbear::toStdString(toJson(sttngs));
 	out << json << "\n";
 	out.close();
 }
 
-void Model::load(string json) {
+void Model::fromJson(string json) {
 	cyborgbear::JsonValOut obj = cyborgbear::read(cyborgbear::toCString(json));
 	loadJsonObj(obj);
 	cyborgbear::decref(obj);
 }
 
-string Model::write(cyborgbear::JsonSerializationSettings sttngs) {
+string Model::toJson(cyborgbear::JsonSerializationSettings sttngs) {
 	cyborgbear::JsonValOut val = buildJsonObj();
 	cyborgbear::JsonObjOut obj = cyborgbear::toObj(val);
 	return cyborgbear::write(obj, sttngs);
 }
 
 unknown::unknown() {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 }
 
 unknown::unknown(Model *v) {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 	set(v);
 }
 
 unknown::unknown(bool v) {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 	set(v);
 }
 
 unknown::unknown(int v) {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 	set(v);
 }
 
 unknown::unknown(double v) {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 	set(v);
 }
 
 unknown::unknown(string v) {
-#ifndef USING_QT
+#ifndef CYBORGBEAR_USING_QT
 	m_obj = 0;
 #endif
 	set(v);

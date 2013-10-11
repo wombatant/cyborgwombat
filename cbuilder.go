@@ -130,6 +130,7 @@ func (me *Cpp) header(fileName string) string {
 	n := strings.ToUpper(fileName)
 	n = strings.Replace(n, ".", "_", -1)
 	return `//Generated Code
+
 #ifndef ` + n + `
 #define ` + n + `
 ` + me.hppPrefix + me.hpp + `
@@ -140,7 +141,6 @@ func (me *Cpp) body(headername string) string {
 	include := ""
 	if headername != "" {
 		include += `//Generated Code
-
 ` + me.buildModelmakerDefsBody(headername) + `
 
 #include "string.h"

@@ -1,6 +1,5 @@
 //Generated Code
 
-
 #include <fstream>
 #include "Model.hpp"
 
@@ -203,9 +202,6 @@ Model1::Model1() {
 	for (int i = 0; i < 4; this->field3[i++] = 0);
 }
 
-Comment::Comment() {
-}
-
 bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 	cyborgbear::JsonObjOut inObj = cyborgbear::toObj(in);
 	{
@@ -261,11 +257,6 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 			}
 		}
 	}
-	return true;
-}
-
-bool Comment::loadJsonObj(cyborgbear::JsonVal in) {
-	cyborgbear::JsonObjOut inObj = cyborgbear::toObj(in);
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field5");
 		if (!cyborgbear::isNull(obj0) && cyborgbear::isObj(obj0)) {
@@ -330,11 +321,6 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 		cyborgbear::objSet(obj, "Field4", out2);
 		cyborgbear::decref(out2);
 	}
-	return obj;
-}
-
-cyborgbear::JsonValOut Comment::buildJsonObj() {
-	cyborgbear::JsonObjOut obj = cyborgbear::newJsonObj();
 	{
 		cyborgbear::JsonObjOut out1 = cyborgbear::newJsonObj();
 		for (std::map< string, string >::iterator n = this->field5.begin(); n != this->field5.end(); ++n) {

@@ -125,10 +125,10 @@ func Parse(input string) ([]*Model, error) {
 	//parse into tokens
 	var tokens []lex.Token
 
-	symbols := []string{"[", "]", "#"}
+	symbols := []string{"[", "]"}
 	keywords := []string{}
 	stringTypes := []lex.Pair{}
-	commentTypes := []lex.Pair{}
+	commentTypes := []lex.Pair{{"#", "\n"}}
 	l := lex.NewAnalyzer(symbols, keywords, stringTypes, commentTypes, true)
 
 	for point := 0; point < len(input); {
@@ -143,14 +143,8 @@ func Parse(input string) ([]*Model, error) {
 	for i := 0; i < len(tokens); i++ {
 		t := tokens[i]
 		switch t.TokType {
-		case lex.Symbol:
-			if t.String() == "#" {
-				for ; i < len(tokens); i++ {
-					if tokens[i].String() == "\n" {
-						break
-					}
-				}
-			}
+		case lex.Comment:
+			// ignore comment tokens
 		case lex.Whitespace:
 			if t.String() == "\n" {
 				line++
@@ -185,7 +179,7 @@ func isScalar(v string) bool {
 
 /*
   Topicologically sorts models to be sure they are declared
-  in a workable order.
+  in a workable order according to their dependencies.
 */
 func topSortModels(models []*Model) []*Model {
 	type topSortNode struct {

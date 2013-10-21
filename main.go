@@ -32,7 +32,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("cyborgbear version 0.10.1")
+		fmt.Println("cyborgbear version 0.11.0")
 		return
 	}
 	parseFile(*in, *out, *namespace, *outputType)

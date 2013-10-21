@@ -32,7 +32,7 @@ void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings stt
 }
 
 void Model::fromJson(string json) {
-	cyborgbear::JsonValOut obj = cyborgbear::read(cyborgbear::toCString(json));
+	cyborgbear::JsonValOut obj = cyborgbear::read(json);
 	loadJsonObj(obj);
 	cyborgbear::decref(obj);
 }

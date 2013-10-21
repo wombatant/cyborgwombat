@@ -431,7 +431,7 @@ std::string toStdString(string str);
 const char* toCString(string str);
 
 
-JsonObjOut read(const char *json);
+JsonObjOut read(string json);
 
 int toInt(JsonVal);
 double toDouble(JsonVal);
@@ -519,8 +519,8 @@ inline string toString(std::string str) {
 }
 
 
-inline JsonObjOut read(const char *json) {
-	return QJsonDocument::fromJson(QByteArray(json)).object();
+inline JsonObjOut read(string json) {
+	return QJsonDocument::fromJson(json.toUtf8()).object();
 }
 
 
@@ -763,8 +763,8 @@ inline const char* toCString(string str) {
 }
 
 
-inline JsonObjOut read(const char *json) {
-	return json_loads(json, 0, NULL);
+inline JsonObjOut read(string json) {
+	return json_loads(json.c_str(), 0, NULL);
 }
 
 inline string write(JsonObj obj, JsonSerializationSettings sttngs) {
@@ -1024,7 +1024,7 @@ void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings stt
 }
 
 void Model::fromJson(string json) {
-	cyborgbear::JsonValOut obj = cyborgbear::read(cyborgbear::toCString(json));
+	cyborgbear::JsonValOut obj = cyborgbear::read(json);
 	loadJsonObj(obj);
 	cyborgbear::decref(obj);
 }

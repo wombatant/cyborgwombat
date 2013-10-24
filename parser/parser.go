@@ -17,7 +17,7 @@ package parser
 
 import (
 	"fmt"
-	"github.com/gtalent/lex"
+	"../../../../../../lex"
 	"os"
 )
 
@@ -74,7 +74,7 @@ func processVariable(model *Model, tokens []lex.Token) (int, error) {
 				size += 2
 				t = append(t, VarType{Type: "slice"})
 				tokens = tokens[2:]
-			} else if len(tokens) > 3 && tokens[1].Type() == lex.IntLiteral && tokens[2].String() == "]" {
+			} else if len(tokens) > 3 && tokens[1].Type == lex.IntLiteral && tokens[2].String() == "]" {
 				size += 3
 				t = append(t, VarType{Type: "array", Index: tokens[1].String()})
 				tokens = tokens[3:]
@@ -94,7 +94,7 @@ func processVariable(model *Model, tokens []lex.Token) (int, error) {
 					if tokens[3].String() != "]" {
 						return 0, fmt.Errorf("Error: expected token \"]\" atfter map index type \"%s\", got \"%s\"", tokens[2].String(), tokens[3].String())
 					}
-					if tokens[4].Type() != lex.Identifier {
+					if tokens[4].Type != lex.Identifier {
 						return 0, fmt.Errorf("Error: expected type after token \"]\", got \"%s\"", tokens[4].String())
 					}
 					tokens = tokens[4:]
@@ -123,26 +123,20 @@ func processVariable(model *Model, tokens []lex.Token) (int, error) {
 */
 func Parse(input string) ([]*Model, error) {
 	//parse into tokens
-	var tokens []lex.Token
-
 	symbols := []string{"[", "]"}
 	keywords := []string{}
 	stringTypes := []lex.Pair{}
 	commentTypes := []lex.Pair{{"#", "\n"}}
 	l := lex.NewAnalyzer(symbols, keywords, stringTypes, commentTypes, true)
 
-	for point := 0; point < len(input); {
-		var t lex.Token
-		t.TokType, t.TokValue, point = l.NextToken(input, point)
-		tokens = append(tokens, t)
-	}
+	tokens := l.TokenList(input)
 
 	line := 1
 	var models []*Model
 	var err error
 	for i := 0; i < len(tokens); i++ {
 		t := tokens[i]
-		switch t.TokType {
+		switch t.Type {
 		case lex.Comment:
 			// ignore comment tokens
 		case lex.Whitespace:
@@ -150,7 +144,7 @@ func Parse(input string) ([]*Model, error) {
 				line++
 			} else if t.String() == "\t" {
 				size := 1
-				if len(tokens) > 1 && tokens[i+1].Type() == lex.Identifier {
+				if len(tokens) > 1 && tokens[i+1].Type == lex.Identifier {
 					size, err = processVariable(models[len(models)-1], tokens[i:])
 					if err != nil {
 						return models, fmt.Errorf("Error on line %d: \n\t%s", line, err)

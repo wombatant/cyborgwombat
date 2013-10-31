@@ -41,7 +41,7 @@ typedef QJsonObject  JsonObjOut;
 typedef QJsonValue   JsonValOut;
 typedef QJsonArray   JsonArrayOut;
 
-typedef QJsonObject::jsonObjIterator JsonObjIterator;
+typedef QJsonObject::iterator JsonObjIterator;
 typedef QString               JsonObjIteratorKey;
 typedef QJsonValueRef         JsonObjIteratorVal;
 

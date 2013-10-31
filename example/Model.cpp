@@ -298,7 +298,7 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 	}
 	{
 		cyborgbear::JsonArrayOut out1 = cyborgbear::newJsonArray();
-		for (unsigned int i = 0; i < 4; i++) {
+		for (cyborgbear::VectorIterator i = 0; i < 4; i++) {
 			cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->field3[i]);
 			cyborgbear::arrayAdd(out1, out0);
 			cyborgbear::decref(out0);
@@ -308,9 +308,9 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 	}
 	{
 		cyborgbear::JsonArrayOut out2 = cyborgbear::newJsonArray();
-		for (unsigned int i = 0; i < this->field4.size(); i++) {
+		for (cyborgbear::VectorIterator i = 0; i < this->field4.size(); i++) {
 			cyborgbear::JsonArrayOut out1 = cyborgbear::newJsonArray();
-			for (unsigned int ii = 0; ii < this->field4[i].size(); ii++) {
+			for (cyborgbear::VectorIterator ii = 0; ii < this->field4[i].size(); ii++) {
 				cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->field4[i][ii]);
 				cyborgbear::arrayAdd(out1, out0);
 				cyborgbear::decref(out0);

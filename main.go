@@ -62,11 +62,13 @@ func parseFile(path, outFile, namespace, outputType string) {
 		return
 	} else {
 		for _, v := range models {
-			out.addClass(v.Name)
-			for _, vv := range v.Vars {
-				out.addVar(vv.Name, vv.Type)
+			if !v.IsUnion {
+				out.addClass(v.Name)
+				for _, vv := range v.Vars {
+					out.addVar(vv.Name, vv.Type)
+				}
+				out.closeClass()
 			}
-			out.closeClass()
 		}
 
 		if outFile == "stdout" {

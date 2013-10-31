@@ -52,10 +52,16 @@ func NewCOut(namespace string, lib int) *Cpp {
 
 func (me *Cpp) typeMap(t string) string {
 	switch t {
-	case "float", "float32", "float64", "double":
-		return "double"
-	case "unknown":
-		return "cyborgbear::unknown"
+	case "int16":
+		return "short"
+	case "uint16":
+		return "unsigned short"
+	case "uint":
+		return "unsigned"
+	case "int64":
+		return "long long"
+	case "uint64":
+		return "unsigned long long"
 	default:
 		return t
 	}
@@ -90,9 +96,6 @@ func (me *Cpp) buildVar(v, t string, index []parser.VarType) string {
 
 func (me *Cpp) addVar(v string, index []parser.VarType) {
 	jsonV := v
-	if len(v) > 0 && v[0] < 91 {
-		v = string(v[0]+32) + v[1:]
-	}
 	t := me.typeMap(index[len(index)-1].Type)
 	index = index[:len(index)-1]
 	me.hpp += "\t\t" + me.buildVar(v, t, index) + "\n"
@@ -314,7 +317,7 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 		}
 	} else {
 		switch t {
-		case "int":
+		case "int", "uint", "int16", "uint16", "int32", "uint32", "int64", "uint64":
 			code.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + sub + ");")
 		case "double":
 			code.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + sub + ");")
@@ -339,7 +342,7 @@ func (me *Cpp) buildWriter(v, jsonV, t string, index []parser.VarType) string {
 		out.Insert("cyborgbear::decref(out" + strconv.Itoa(len(index)) + ");")
 	} else {
 		switch t {
-		case "int":
+		case "int", "uint", "int16", "uint16", "int32", "uint32", "int64", "uint64":
 			out.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + ");")
 		case "double":
 			out.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + ");")
@@ -804,7 +807,7 @@ inline JsonObj toObj(JsonVal v) {
 }
 
 
-inline JsonVal toJsonVal(int v) {
+inline JsonVal toJsonVal(long long v) {
 	return json_integer(v);
 }
 

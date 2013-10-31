@@ -644,11 +644,11 @@ class Model1: public cyborgbear::Model {
 
 		cyborgbear::JsonValOut buildJsonObj();
 
-		string field1;
-		cyborgbear::unknown field2;
-		int field3[4];
-		std::vector< std::vector< string > > field4;
-		std::map< string, string > field5;
+		string Field1;
+		unsigned Field2;
+		int Field3[4];
+		std::vector< std::vector< string > > Field4;
+		std::map< string, string > Field5;
 };
 
 }

@@ -22,7 +22,7 @@ using namespace models;
 int main() {
 	Model1 mod;
 	mod.fromJson("{\"Field1\": \"Ni!\", \"Field2\": 1, \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]], \"Field5\": {\"Narf\": \"Ni\"}}");
-	mod.field1 = "Narf!";
+	mod.Field1 = "Narf!";
 	cout << mod.toJson(cyborgbear::Readable) << endl;
 	return 0;
 }

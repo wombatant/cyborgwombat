@@ -32,8 +32,9 @@ type Var struct {
 }
 
 type Model struct {
-	Name string
-	Vars []Var
+	Name    string
+	Vars    []Var
+	IsUnion bool
 }
 
 /*
@@ -87,8 +88,7 @@ func processVariable(model *Model, tokens []lex.Token) (int, error) {
 			}
 		} else if tokens[0].String() == "map" {
 			if len(tokens) > 4 && tokens[1].String() == "[" {
-				switch tokens[2].String() {
-				case "bool", "int", "float", "float32", "float64", "double", "string":
+				if isScalar(tokens[2].String()) {
 					size += 4
 					t = append(t, VarType{Type: "map", Index: tokens[2].String()})
 					if tokens[3].String() != "]" {
@@ -98,7 +98,7 @@ func processVariable(model *Model, tokens []lex.Token) (int, error) {
 						return 0, fmt.Errorf("Error: expected type after token \"]\", got \"%s\"", tokens[4].String())
 					}
 					tokens = tokens[4:]
-				default:
+				} else {
 					return 0, fmt.Errorf("Error: invalid map type, key must be bool, int, float, float32, float64, double, or string")
 				}
 			} else {
@@ -124,7 +124,7 @@ func processVariable(model *Model, tokens []lex.Token) (int, error) {
 func Parse(input string) ([]*Model, error) {
 	//parse into tokens
 	symbols := []string{"[", "]"}
-	keywords := []string{}
+	keywords := []string{"union"}
 	stringTypes := []lex.Pair{}
 	commentTypes := []lex.Pair{{"#", "\n"}}
 	l := lex.NewAnalyzer(symbols, keywords, stringTypes, commentTypes, true)
@@ -133,6 +133,7 @@ func Parse(input string) ([]*Model, error) {
 
 	line := 1
 	var models []*Model
+	var currentModel *Model
 	var err error
 	for i := 0; i < len(tokens); i++ {
 		t := tokens[i]
@@ -145,7 +146,7 @@ func Parse(input string) ([]*Model, error) {
 			} else if t.String() == "\t" {
 				size := 1
 				if len(tokens) > 1 && tokens[i+1].Type == lex.Identifier {
-					size, err = processVariable(models[len(models)-1], tokens[i:])
+					size, err = processVariable(currentModel, tokens[i:])
 					if err != nil {
 						return models, fmt.Errorf("Error on line %d: \n\t%s", line, err)
 					}
@@ -154,6 +155,24 @@ func Parse(input string) ([]*Model, error) {
 			}
 		case lex.Identifier:
 			models = append(models, &Model{Name: t.String()})
+			currentModel = models[len(models)-1]
+		case lex.Keyword:
+			if tokens[i].String() == "union" {
+				// parse through whitespace
+				i++
+				for {
+					if tokens[i].String() == "\t" || tokens[i].String() == " " {
+						i++
+					} else if tokens[i].Type == lex.Identifier {
+						break
+					} else {
+						err = fmt.Errorf("Error on line %d: \n\tError: unexpected token", line+1)
+						return models, err
+					}
+				}
+				models = append(models, &Model{Name: t.String(), IsUnion: true})
+				currentModel = models[len(models)-1]
+			}
 		default:
 			err = fmt.Errorf("Error on line %d: \n\tError: unexpected token", line+1)
 			return models, err
@@ -165,7 +184,7 @@ func Parse(input string) ([]*Model, error) {
 
 func isScalar(v string) bool {
 	switch v {
-	case "bool", "int", "double", "float32", "float64", "string", "unknown":
+	case "bool", "int", "uint", "int16", "uint16", "int64", "uint64", "char", "float", "double", "long", "string", "unknown":
 		return true
 	}
 	return false

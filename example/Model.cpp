@@ -198,8 +198,8 @@ using namespace models;
 using std::stringstream;
 
 Model1::Model1() {
-	this->field1 = "";
-	for (int i = 0; i < 4; this->field3[i++] = 0);
+	this->Field1 = "";
+	for (int i = 0; i < 4; this->Field3[i++] = 0);
 }
 
 bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
@@ -208,14 +208,17 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field1");
 		{
 			if (cyborgbear::isString(obj0)) {
-				this->field1 = cyborgbear::toString(obj0);
+				this->Field1 = cyborgbear::toString(obj0);
 			}
 		}
 	}
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field2");
 		{
-			this->field2.loadJsonObj(obj0);
+			cyborgbear::JsonValOut finalObj = cyborgbear::toObj(obj0);
+			if (cyborgbear::isObj(finalObj)) {
+				this->Field2.loadJsonObj(obj0);
+			}
 		}
 	}
 	{
@@ -227,7 +230,7 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 				cyborgbear::JsonValOut obj1 = cyborgbear::arrayRead(array0, i);
 				{
 					if (cyborgbear::isInt(obj1)) {
-						this->field3[i] = cyborgbear::toInt(obj1);
+						this->Field3[i] = cyborgbear::toInt(obj1);
 					}
 				}
 			}
@@ -238,18 +241,18 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 		if (!cyborgbear::isNull(obj0) && cyborgbear::isArray(obj0)) {
 			cyborgbear::JsonArrayOut array0 = cyborgbear::toArray(obj0);
 			unsigned int size = cyborgbear::arraySize(array0);
-			this->field4.resize(size);
+			this->Field4.resize(size);
 			for (unsigned int i = 0; i < size; i++) {
 				cyborgbear::JsonValOut obj1 = cyborgbear::arrayRead(array0, i);
 				if (!cyborgbear::isNull(obj1) && cyborgbear::isArray(obj1)) {
 					cyborgbear::JsonArrayOut array1 = cyborgbear::toArray(obj1);
 					unsigned int size = cyborgbear::arraySize(array1);
-					this->field4[i].resize(size);
+					this->Field4[i].resize(size);
 					for (unsigned int ii = 0; ii < size; ii++) {
 						cyborgbear::JsonValOut obj2 = cyborgbear::arrayRead(array1, ii);
 						{
 							if (cyborgbear::isString(obj2)) {
-								this->field4[i][ii] = cyborgbear::toString(obj2);
+								this->Field4[i][ii] = cyborgbear::toString(obj2);
 							}
 						}
 					}
@@ -274,7 +277,7 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 				}
 				{
 					if (cyborgbear::isString(obj1)) {
-						this->field5[i] = cyborgbear::toString(obj1);
+						this->Field5[i] = cyborgbear::toString(obj1);
 					}
 				}
 			}
@@ -286,12 +289,12 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 cyborgbear::JsonValOut Model1::buildJsonObj() {
 	cyborgbear::JsonObjOut obj = cyborgbear::newJsonObj();
 	{
-		cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->field1);
+		cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->Field1);
 		cyborgbear::objSet(obj, "Field1", out0);
 		cyborgbear::decref(out0);
 	}
 	{
-		cyborgbear::JsonValOut obj0 = this->field2.buildJsonObj();
+		cyborgbear::JsonValOut obj0 = this->Field2.buildJsonObj();
 		cyborgbear::JsonValOut out0 = obj0;
 		cyborgbear::objSet(obj, "Field2", out0);
 		cyborgbear::decref(out0);
@@ -299,7 +302,7 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 	{
 		cyborgbear::JsonArrayOut out1 = cyborgbear::newJsonArray();
 		for (unsigned int i = 0; i < 4; i++) {
-			cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->field3[i]);
+			cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->Field3[i]);
 			cyborgbear::arrayAdd(out1, out0);
 			cyborgbear::decref(out0);
 		}
@@ -308,10 +311,10 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 	}
 	{
 		cyborgbear::JsonArrayOut out2 = cyborgbear::newJsonArray();
-		for (unsigned int i = 0; i < this->field4.size(); i++) {
+		for (unsigned int i = 0; i < this->Field4.size(); i++) {
 			cyborgbear::JsonArrayOut out1 = cyborgbear::newJsonArray();
-			for (unsigned int ii = 0; ii < this->field4[i].size(); ii++) {
-				cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->field4[i][ii]);
+			for (unsigned int ii = 0; ii < this->Field4[i].size(); ii++) {
+				cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->Field4[i][ii]);
 				cyborgbear::arrayAdd(out1, out0);
 				cyborgbear::decref(out0);
 			}
@@ -323,14 +326,14 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 	}
 	{
 		cyborgbear::JsonObjOut out1 = cyborgbear::newJsonObj();
-		for (std::map< string, string >::iterator n = this->field5.begin(); n != this->field5.end(); ++n) {
+		for (std::map< string, string >::iterator n = this->Field5.begin(); n != this->Field5.end(); ++n) {
 			std::stringstream s;
 			string key;
 			std::string tmp;
 			s << cyborgbear::toStdString(cyborgbear::toString(n->first));
 			s >> tmp;
 			key = cyborgbear::toString(tmp);
-			cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->field5[n->first]);
+			cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->Field5[n->first]);
 			cyborgbear::objSet(out1, key, out0);
 			cyborgbear::decref(out0);
 		}

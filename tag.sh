@@ -1,4 +1,4 @@
-echo "package main; const cyborgbear_version = \"$1\";" > version.go
+echo "package main; const cyborgbear_version = \"$2\";" > version.go
 liccor
 
 # rebuild the example to get rid of the license headers added by liccor

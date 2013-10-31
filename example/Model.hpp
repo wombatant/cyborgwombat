@@ -7,10 +7,6 @@
 
 #define CYBORGBEAR_USING_JANSSON
 
-#include <string>
-
-#include <vector>
-#include <map>
 
 #ifdef CYBORGBEAR_USING_QT
 #include <QString>
@@ -21,6 +17,8 @@
 #include <QMap>
 #include <QVector>
 #else
+#include <vector>
+#include <map>
 #include <string>
 #include <jansson.h>
 #endif
@@ -43,11 +41,13 @@ typedef QJsonObject  JsonObjOut;
 typedef QJsonValue   JsonValOut;
 typedef QJsonArray   JsonArrayOut;
 
-typedef QJsonObject::iterator JsonObjIterator;
+typedef QJsonObject::jsonObjIterator JsonObjIterator;
 typedef QString               JsonObjIteratorKey;
 typedef QJsonValueRef         JsonObjIteratorVal;
 
 typedef QString string;
+
+typedef int VectorIterator;
 
 #else
 
@@ -64,6 +64,8 @@ typedef const char* JsonObjIteratorKey;
 typedef json_t*     JsonObjIteratorVal;
 
 typedef std::string string;
+
+typedef unsigned VectorIterator;
 #endif
 
 //string ops
@@ -126,9 +128,9 @@ void objSet(JsonObj, string, JsonArray);
 JsonValOut objRead(JsonObj, string);
 
 
-JsonObjIterator iterator(JsonObj);
-JsonObjIterator iteratorNext(JsonObj, JsonObjIterator);
-JsonObjIteratorKey iteratorKey(JsonObjIterator);
+JsonObjIterator jsonObjIterator(JsonObj);
+JsonObjIterator jsonObjIteratorNext(JsonObj, JsonObjIterator);
+JsonObjIteratorKey jsonObjIteratorKey(JsonObjIterator);
 JsonObjIteratorVal iteratorValue(JsonObjIterator);
 bool iteratorAtEnd(JsonObjIterator, JsonObj);
 
@@ -367,15 +369,15 @@ inline JsonValOut objRead(JsonObj o, string k) {
 	return o[k];
 }
 
-inline JsonObjIterator iterator(JsonObj o) {
+inline JsonObjIterator jsonObjIterator(JsonObj o) {
 	return o.begin();
 }
 
-inline JsonObjIterator iteratorNext(JsonObj, JsonObjIterator i) {
+inline JsonObjIterator jsonObjIteratorNext(JsonObj, JsonObjIterator i) {
 	return i + 1;
 }
 
-inline JsonObjIteratorKey iteratorKey(JsonObjIterator i) {
+inline JsonObjIteratorKey jsonObjIteratorKey(JsonObjIterator i) {
 	return i.key();
 }
 
@@ -534,15 +536,15 @@ inline JsonVal objRead(JsonObj o, string k) {
 }
 
 
-inline JsonObjIterator iterator(JsonObj o) {
+inline JsonObjIterator jsonObjIterator(JsonObj o) {
 	return json_object_iter_key(json_object_iter(o));
 }
 
-inline JsonObjIterator iteratorNext(JsonObj o, JsonObjIterator i) {
+inline JsonObjIterator jsonObjIteratorNext(JsonObj o, JsonObjIterator i) {
 	return json_object_iter_key(json_object_iter_next(o, json_object_key_to_iter(i)));
 }
 
-inline JsonObjIteratorKey iteratorKey(JsonObjIterator i) {
+inline JsonObjIteratorKey jsonObjIteratorKey(JsonObjIterator i) {
 	return i;
 }
 

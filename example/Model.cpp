@@ -261,11 +261,11 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field5");
 		if (!cyborgbear::isNull(obj0) && cyborgbear::isObj(obj0)) {
 			cyborgbear::JsonObjOut map0 = cyborgbear::toObj(obj0);
-			for (cyborgbear::JsonObjIterator it1 = cyborgbear::iterator(map0); !cyborgbear::iteratorAtEnd(it1, map0); it1 = cyborgbear::iteratorNext(map0,  it1)) {
+			for (cyborgbear::JsonObjIterator it1 = cyborgbear::jsonObjIterator(map0); !cyborgbear::iteratorAtEnd(it1, map0); it1 = cyborgbear::jsonObjIteratorNext(map0,  it1)) {
 				string i;
 				cyborgbear::JsonValOut obj1 = cyborgbear::iteratorValue(it1);
 				{
-					std::string key = cyborgbear::toStdString(cyborgbear::iteratorKey(it1));
+					std::string key = cyborgbear::toStdString(cyborgbear::jsonObjIteratorKey(it1));
 					std::string o;
 					std::stringstream s;
 					s << key;

@@ -264,11 +264,11 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field5");
 		if (!cyborgbear::isNull(obj0) && cyborgbear::isObj(obj0)) {
 			cyborgbear::JsonObjOut map0 = cyborgbear::toObj(obj0);
-			for (cyborgbear::JsonObjIterator it1 = cyborgbear::iterator(map0); !cyborgbear::iteratorAtEnd(it1, map0); it1 = cyborgbear::iteratorNext(map0,  it1)) {
+			for (cyborgbear::JsonObjIterator it1 = cyborgbear::jsonObjIterator(map0); !cyborgbear::iteratorAtEnd(it1, map0); it1 = cyborgbear::jsonObjIteratorNext(map0,  it1)) {
 				string i;
 				cyborgbear::JsonValOut obj1 = cyborgbear::iteratorValue(it1);
 				{
-					std::string key = cyborgbear::toStdString(cyborgbear::iteratorKey(it1));
+					std::string key = cyborgbear::toStdString(cyborgbear::jsonObjIteratorKey(it1));
 					std::string o;
 					std::stringstream s;
 					s << key;
@@ -301,7 +301,7 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 	}
 	{
 		cyborgbear::JsonArrayOut out1 = cyborgbear::newJsonArray();
-		for (unsigned int i = 0; i < 4; i++) {
+		for (cyborgbear::VectorIterator i = 0; i < 4; i++) {
 			cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->Field3[i]);
 			cyborgbear::arrayAdd(out1, out0);
 			cyborgbear::decref(out0);
@@ -311,9 +311,9 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 	}
 	{
 		cyborgbear::JsonArrayOut out2 = cyborgbear::newJsonArray();
-		for (unsigned int i = 0; i < this->Field4.size(); i++) {
+		for (cyborgbear::VectorIterator i = 0; i < this->Field4.size(); i++) {
 			cyborgbear::JsonArrayOut out1 = cyborgbear::newJsonArray();
-			for (unsigned int ii = 0; ii < this->Field4[i].size(); ii++) {
+			for (cyborgbear::VectorIterator ii = 0; ii < this->Field4[i].size(); ii++) {
 				cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->Field4[i][ii]);
 				cyborgbear::arrayAdd(out1, out0);
 				cyborgbear::decref(out0);

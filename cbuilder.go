@@ -75,10 +75,22 @@ func (me *Cpp) buildTypeDec(t string, index []parser.VarType) string {
 		if i != len(index)-1 && index[i].Type == "array" {
 			array += "[" + index[i].Index + "]"
 		} else if index[i].Type == "slice" {
-			out += "std::vector< "
+			vector := ""
+			if me.lib == USING_QT {
+				vector = "QVector"
+			} else {
+				vector = "std::vector"
+			}
+			out += vector + "< "
 			array += " >"
 		} else if index[i].Type == "map" {
-			out += "std::map< " + index[i].Index + ", "
+			cmap := ""
+			if me.lib == USING_QT {
+				cmap = "QMap"
+			} else {
+				cmap = "std::map"
+			}
+			out += cmap + "< " + index[i].Index + ", "
 			array += " >"
 		}
 	}
@@ -207,11 +219,11 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 		} else if index[0].Type == "map" {
 			code.PushIfBlock("!cyborgbear::isNull(obj" + strconv.Itoa(depth) + ") && cyborgbear::isObj(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("cyborgbear::JsonObjOut map" + strconv.Itoa(depth) + " = cyborgbear::toObj(obj" + strconv.Itoa(depth) + ");")
-			code.PushForBlock("cyborgbear::JsonObjIterator it" + strconv.Itoa(depth+1) + " = cyborgbear::iterator(map" + strconv.Itoa(depth) + "); !cyborgbear::iteratorAtEnd(it" + strconv.Itoa(depth+1) + ", map" + strconv.Itoa(depth) + "); " + "it" + strconv.Itoa(depth+1) + " = cyborgbear::iteratorNext(map" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
+			code.PushForBlock("cyborgbear::JsonObjIterator it" + strconv.Itoa(depth+1) + " = cyborgbear::jsonObjIterator(map" + strconv.Itoa(depth) + "); !cyborgbear::iteratorAtEnd(it" + strconv.Itoa(depth+1) + ", map" + strconv.Itoa(depth) + "); " + "it" + strconv.Itoa(depth+1) + " = cyborgbear::jsonObjIteratorNext(map" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
 			code.Insert(index[0].Index + " " + is + ";")
 			code.Insert("cyborgbear::JsonValOut obj" + strconv.Itoa(depth+1) + " = cyborgbear::iteratorValue(it" + strconv.Itoa(depth+1) + ");")
 			code.PushBlock()
-			code.Insert("std::string key = cyborgbear::toStdString(cyborgbear::iteratorKey(it" + strconv.Itoa(depth+1) + "));")
+			code.Insert("std::string key = cyborgbear::toStdString(cyborgbear::jsonObjIteratorKey(it" + strconv.Itoa(depth+1) + "));")
 			switch index[0].Index {
 			case "bool":
 				code.Insert(is + " = key == \"true\";")
@@ -277,13 +289,18 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 		ns += "n"
 	}
 
+	itKey := "->first"
+	if me.lib == USING_QT {
+		itKey = ".key()"
+	}
+
 	if len(index) > depth {
 		if index[depth].Type == "array" || index[depth].Type == "slice" {
 			code.Insert("cyborgbear::JsonArrayOut out" + strconv.Itoa(len(index[depth:])) + " = cyborgbear::newJsonArray();")
 			if index[depth].Type == "slice" {
-				code.PushForBlock("unsigned int " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
+				code.PushForBlock("cyborgbear::VectorIterator " + is + " = 0; " + is + " < this->" + v + sub + ".size(); " + is + "++")
 			} else { // array
-				code.PushForBlock("unsigned int " + is + " = 0; " + is + " < " + index[depth].Index + "; " + is + "++")
+				code.PushForBlock("cyborgbear::VectorIterator " + is + " = 0; " + is + " < " + index[depth].Index + "; " + is + "++")
 			}
 			me.buildArrayWriter(code, t, v, sub+"["+is+"]", depth+1, index)
 			code.Insert("cyborgbear::arrayAdd(out" + strconv.Itoa(len(index[depth:])) + ", out" + strconv.Itoa(len(index[depth+1:])) + ");")
@@ -294,23 +311,23 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 			code.PushForBlock(me.buildTypeDec(t, index[depth:]) + "::iterator " + ns + " = this->" + v + sub + ".begin(); " + ns + " != this->" + v + sub + ".end(); ++" + ns)
 			switch index[depth].Index {
 			case "bool":
-				code.Insert("string key = " + ns + "->first ? \"true\" : \"false\";")
+				code.Insert("string key = " + ns + itKey + " ? \"true\" : \"false\";")
 			case "string":
 				code.Insert("std::stringstream s;")
 				code.Insert("string key;")
 				code.Insert("std::string tmp;")
-				code.Insert("s << cyborgbear::toStdString(cyborgbear::toString(" + ns + "->first));")
+				code.Insert("s << cyborgbear::toStdString(cyborgbear::toString(" + ns + itKey + "));")
 				code.Insert("s >> tmp;")
 				code.Insert("key = cyborgbear::toString(tmp);")
 			case "int", "double":
 				code.Insert("std::stringstream s;")
 				code.Insert("string key;")
 				code.Insert("std::string tmp;")
-				code.Insert("s << " + ns + "->first;")
+				code.Insert("s << " + ns + itKey + ";")
 				code.Insert("s >> tmp;")
 				code.Insert("key = cyborgbear::toString(tmp);")
 			}
-			me.buildArrayWriter(code, t, v, sub+"["+ns+"->first]", depth+1, index)
+			me.buildArrayWriter(code, t, v, sub+"["+ns+itKey+"]", depth+1, index)
 			code.Insert("cyborgbear::objSet(out" + strconv.Itoa(len(index[depth:])) + ", key, out" + strconv.Itoa(len(index[depth:])-1) + ");")
 			code.Insert("cyborgbear::decref(out" + strconv.Itoa(len(index[depth+1:])) + ");")
 			code.PopBlock()
@@ -370,10 +387,6 @@ func (me *Cpp) buildModelmakerDefsHeader() string {
 	}
 	out := `#define ` + using + `
 
-#include <string>
-
-#include <vector>
-#include <map>
 
 #ifdef CYBORGBEAR_USING_QT
 #include <QString>
@@ -384,6 +397,8 @@ func (me *Cpp) buildModelmakerDefsHeader() string {
 #include <QMap>
 #include <QVector>
 #else
+#include <vector>
+#include <map>
 #include <string>
 #include <jansson.h>
 #endif
@@ -412,6 +427,8 @@ typedef QJsonValueRef         JsonObjIteratorVal;
 
 typedef QString string;
 
+typedef int VectorIterator;
+
 #else
 
 typedef json_t* JsonObj;
@@ -427,6 +444,8 @@ typedef const char* JsonObjIteratorKey;
 typedef json_t*     JsonObjIteratorVal;
 
 typedef std::string string;
+
+typedef unsigned VectorIterator;
 #endif
 
 //string ops
@@ -489,9 +508,9 @@ void objSet(JsonObj, string, JsonArray);
 JsonValOut objRead(JsonObj, string);
 
 
-JsonObjIterator iterator(JsonObj);
-JsonObjIterator iteratorNext(JsonObj, JsonObjIterator);
-JsonObjIteratorKey iteratorKey(JsonObjIterator);
+JsonObjIterator jsonObjIterator(JsonObj);
+JsonObjIterator jsonObjIteratorNext(JsonObj, JsonObjIterator);
+JsonObjIteratorKey jsonObjIteratorKey(JsonObjIterator);
 JsonObjIteratorVal iteratorValue(JsonObjIterator);
 bool iteratorAtEnd(JsonObjIterator, JsonObj);
 
@@ -730,15 +749,15 @@ inline JsonValOut objRead(JsonObj o, string k) {
 	return o[k];
 }
 
-inline JsonObjIterator iterator(JsonObj o) {
+inline JsonObjIterator jsonObjIterator(JsonObj o) {
 	return o.begin();
 }
 
-inline JsonObjIterator iteratorNext(JsonObj, JsonObjIterator i) {
+inline JsonObjIterator jsonObjIteratorNext(JsonObj, JsonObjIterator i) {
 	return i + 1;
 }
 
-inline JsonObjIteratorKey iteratorKey(JsonObjIterator i) {
+inline JsonObjIteratorKey jsonObjIteratorKey(JsonObjIterator i) {
 	return i.key();
 }
 
@@ -897,15 +916,15 @@ inline JsonVal objRead(JsonObj o, string k) {
 }
 
 
-inline JsonObjIterator iterator(JsonObj o) {
+inline JsonObjIterator jsonObjIterator(JsonObj o) {
 	return json_object_iter_key(json_object_iter(o));
 }
 
-inline JsonObjIterator iteratorNext(JsonObj o, JsonObjIterator i) {
+inline JsonObjIterator jsonObjIteratorNext(JsonObj o, JsonObjIterator i) {
 	return json_object_iter_key(json_object_iter_next(o, json_object_key_to_iter(i)));
 }
 
-inline JsonObjIteratorKey iteratorKey(JsonObjIterator i) {
+inline JsonObjIteratorKey jsonObjIteratorKey(JsonObjIterator i) {
 	return i;
 }
 

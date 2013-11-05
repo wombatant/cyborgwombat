@@ -27,17 +27,20 @@ const (
 )
 
 type Cpp struct {
-	hppPrefix   string
-	hpp         string
-	constructor string
-	reader      string
-	writer      string
-	namespace   string
-	lib         int
+	hppPrefix    string
+	hpp          string
+	constructor  string
+	reader       string
+	writer       string
+	namespace    string
+	boostFuncs   string
+	boostEnabled bool
+	lib          int
 }
 
-func NewCOut(namespace string, lib int) *Cpp {
+func NewCOut(namespace string, lib int, boost bool) *Cpp {
 	out := new(Cpp)
+	out.boostEnabled = boost
 	out.namespace = namespace
 	out.lib = lib
 	out.hppPrefix = `#include <string>
@@ -88,6 +91,10 @@ func (me *Cpp) buildTypeDec(t string, index []parser.VarType) string {
 	return out
 }
 
+func (me *Cpp) buildBoostSerialize(name string) string {
+	return "\tar & model." + name + ";\n"
+}
+
 func (me *Cpp) buildVar(v, t string, index []parser.VarType) string {
 	array := ""
 	if len(index) > 0 && index[len(index)-1].Type == "array" {
@@ -106,6 +113,7 @@ func (me *Cpp) addVar(v string, index []parser.VarType) {
 	me.constructor += me.buildConstructor(v, t, index)
 	me.reader += me.buildReader(&reader, v, jsonV, t, "", index, 0)
 	me.writer += me.buildWriter(v, jsonV, t, index)
+	me.boostFuncs += me.buildBoostSerialize(v)
 }
 
 func (me *Cpp) addClass(v string) {
@@ -121,6 +129,10 @@ func (me *Cpp) addClass(v string) {
 	me.reader += "\tcyborgbear::JsonObjOut inObj = cyborgbear::toObj(in);"
 	me.writer += "cyborgbear::JsonValOut " + v + `::buildJsonObj() {
 	cyborgbear::JsonObjOut obj = cyborgbear::newJsonObj();`
+	me.boostFuncs += `
+template<class Archive>
+void serialize(Archive &ar, ` + me.namespace + "::" + v + ` &model, const unsigned int) {
+`
 }
 
 func (me *Cpp) closeClass() {
@@ -129,17 +141,31 @@ func (me *Cpp) closeClass() {
 	me.constructor += "}\n\n"
 	me.reader += "\n\treturn true;\n}\n\n"
 	me.writer += "\n\treturn obj;\n}\n\n"
+	me.boostFuncs += "}\n"
 }
 
 func (me *Cpp) header(fileName string) string {
 	n := strings.ToUpper(fileName)
 	n = strings.Replace(n, ".", "_", -1)
-	return `//Generated Code
+	out := `//Generated Code
 
 #ifndef ` + n + `
 #define ` + n + `
 ` + me.hppPrefix + me.hpp + `
+#ifdef CYBORGBEAR_BOOST_ENABLED
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+
+namespace boost {
+namespace serialization {
+` + me.boostFuncs + `
+}
+}
+#endif
 #endif`
+	return out
 }
 
 func (me *Cpp) body(headername string) string {
@@ -371,12 +397,14 @@ func (me *Cpp) buildWriter(v, jsonV, t string, index []parser.VarType) string {
 func (me *Cpp) buildModelmakerDefsHeader() string {
 	using := ""
 	if me.lib == USING_QT {
-		using = "CYBORGBEAR_USING_QT"
+		using += "#define CYBORGBEAR_USING_QT\n"
 	} else {
-		using = "CYBORGBEAR_USING_JANSSON"
+		using += "#define CYBORGBEAR_USING_JANSSON\n"
 	}
-	out := `#define ` + using + `
-
+	if me.boostEnabled {
+		using += "#define CYBORGBEAR_BOOST_ENABLED\n"
+	}
+	out := using + `
 
 #ifdef CYBORGBEAR_USING_QT
 #include <QString>

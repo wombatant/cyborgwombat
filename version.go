@@ -13,4 +13,6 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-package main; const cyborgbear_version = "0.12.0";
+package main
+
+const cyborgbear_version = "0.12.0"

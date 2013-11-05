@@ -52,16 +52,6 @@ func NewCOut(namespace string, lib int) *Cpp {
 
 func (me *Cpp) typeMap(t string) string {
 	switch t {
-	case "int16":
-		return "short"
-	case "uint16":
-		return "unsigned short"
-	case "uint":
-		return "unsigned"
-	case "int64":
-		return "long long"
-	case "uint64":
-		return "unsigned long long"
 	default:
 		return t
 	}
@@ -247,7 +237,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 	} else {
 		code.PushBlock()
 		switch t { //type
-		case "int":
+		case "int", "uint", "int16", "uint16", "int32", "uint32", "int64", "uint64":
 			code.PushIfBlock("cyborgbear::isInt(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("this->" + v + sub + " = cyborgbear::toInt(obj" + strconv.Itoa(depth) + ");")
 			code.PopBlock()
@@ -407,6 +397,14 @@ namespace ` + me.namespace + ` {
 
 namespace cyborgbear {
 
+typedef unsigned short int uint16;
+typedef short int int16;
+typedef unsigned int uint;
+typedef long int int32;
+typedef unsigned long int uint32;
+typedef long int int64;
+typedef unsigned long int uint64;
+
 enum JsonSerializationSettings {
 	Compact = 0,
 	Readable = 1
@@ -463,6 +461,9 @@ JsonArrayOut toArray(JsonVal);
 JsonObjOut toObj(JsonVal);
 
 JsonValOut toJsonVal(int);
+JsonValOut toJsonVal(uint);
+JsonValOut toJsonVal(int64);
+JsonValOut toJsonVal(uint64);
 JsonValOut toJsonVal(double);
 JsonValOut toJsonVal(bool);
 JsonValOut toJsonVal(string);
@@ -598,6 +599,18 @@ inline JsonObjOut toObj(JsonVal v) {
 
 
 inline JsonValOut toJsonVal(int v) {
+	return QJsonValue(v);
+}
+
+inline JsonValOut toJsonVal(uint v) {
+	return QJsonValue(v);
+}
+
+inline JsonValOut toJsonVal(int64 v) {
+	return QJsonValue(v);
+}
+
+inline JsonValOut toJsonVal(uint64 v) {
 	return QJsonValue(v);
 }
 
@@ -826,7 +839,19 @@ inline JsonObj toObj(JsonVal v) {
 }
 
 
-inline JsonVal toJsonVal(long long v) {
+inline JsonVal toJsonVal(int v) {
+	return json_integer(v);
+}
+
+inline JsonVal toJsonVal(uint v) {
+	return json_integer(v);
+}
+
+inline JsonVal toJsonVal(int64 v) {
+	return json_integer(v);
+}
+
+inline JsonVal toJsonVal(uint64 v) {
 	return json_integer(v);
 }
 

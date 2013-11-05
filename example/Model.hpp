@@ -27,6 +27,14 @@ namespace models {
 
 namespace cyborgbear {
 
+typedef unsigned short int uint16;
+typedef short int int16;
+typedef unsigned int uint;
+typedef long int int32;
+typedef unsigned long int uint32;
+typedef long int int64;
+typedef unsigned long int uint64;
+
 enum JsonSerializationSettings {
 	Compact = 0,
 	Readable = 1
@@ -83,6 +91,9 @@ JsonArrayOut toArray(JsonVal);
 JsonObjOut toObj(JsonVal);
 
 JsonValOut toJsonVal(int);
+JsonValOut toJsonVal(uint);
+JsonValOut toJsonVal(int64);
+JsonValOut toJsonVal(uint64);
 JsonValOut toJsonVal(double);
 JsonValOut toJsonVal(bool);
 JsonValOut toJsonVal(string);
@@ -217,7 +228,11 @@ inline JsonObjOut toObj(JsonVal v) {
 }
 
 
-inline JsonValOut toJsonVal(int v) {
+inline JsonValOut toJsonVal(int64 v) {
+	return QJsonValue(v);
+}
+
+inline JsonValOut toJsonVal(uint64 v) {
 	return QJsonValue(v);
 }
 
@@ -446,7 +461,19 @@ inline JsonObj toObj(JsonVal v) {
 }
 
 
-inline JsonVal toJsonVal(long long v) {
+inline JsonVal toJsonVal(int v) {
+	return json_integer(v);
+}
+
+inline JsonVal toJsonVal(uint v) {
+	return json_integer(v);
+}
+
+inline JsonVal toJsonVal(int64 v) {
+	return json_integer(v);
+}
+
+inline JsonVal toJsonVal(uint64 v) {
 	return json_integer(v);
 }
 
@@ -647,7 +674,7 @@ class Model1: public cyborgbear::Model {
 		cyborgbear::JsonValOut buildJsonObj();
 
 		string Field1;
-		unsigned Field2;
+		uint Field2;
 		int Field3[4];
 		std::vector< std::vector< string > > Field4;
 		std::map< string, string > Field5;

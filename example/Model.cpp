@@ -215,9 +215,8 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field2");
 		{
-			cyborgbear::JsonValOut finalObj = cyborgbear::toObj(obj0);
-			if (cyborgbear::isObj(finalObj)) {
-				this->Field2.loadJsonObj(obj0);
+			if (cyborgbear::isInt(obj0)) {
+				this->Field2 = cyborgbear::toInt(obj0);
 			}
 		}
 	}
@@ -294,8 +293,7 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 		cyborgbear::decref(out0);
 	}
 	{
-		cyborgbear::JsonValOut obj0 = this->Field2.buildJsonObj();
-		cyborgbear::JsonValOut out0 = obj0;
+		cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->Field2);
 		cyborgbear::objSet(obj, "Field2", out0);
 		cyborgbear::decref(out0);
 	}

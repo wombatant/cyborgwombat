@@ -656,4 +656,25 @@ class Model1: public cyborgbear::Model {
 }
 
 
+#ifdef CYBORGBEAR_BOOST_ENABLED
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+
+namespace boost {
+namespace serialization {
+
+template<class Archive>
+void serialize(Archive &ar, models::Model1 &model, const unsigned int) {
+	ar & model.field1;
+	ar & model.field2;
+	ar & model.field3;
+	ar & model.field4;
+	ar & model.field5;
+}
+
+}
+}
+#endif
 #endif

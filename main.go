@@ -28,6 +28,7 @@ func main() {
 	in := flag.String("i", "", "The model file to generate JSON serialization code for")
 	namespace := flag.String("n", "models", "Namespace for the models")
 	outputType := flag.String("t", "cpp-jansson", "Output type(cpp-jansson, cpp-qt)")
+	boost := flag.Bool("cpp-boost", false, "Boost serialization enabled")
 	version := flag.Bool("v", false, "version")
 	flag.Parse()
 
@@ -35,10 +36,10 @@ func main() {
 		fmt.Println("cyborgbear version " + cyborgbear_version)
 		return
 	}
-	parseFile(*in, *out, *namespace, *outputType)
+	parseFile(*in, *out, *namespace, *outputType, *boost)
 }
 
-func parseFile(path, outFile, namespace, outputType string) {
+func parseFile(path, outFile, namespace, outputType string, boost bool) {
 	ss, err := ioutil.ReadFile(path)
 	if err != nil {
 		fmt.Println("Could not find or open specified model file")
@@ -54,7 +55,7 @@ func parseFile(path, outFile, namespace, outputType string) {
 		ioutputType = USING_QT
 	}
 
-	out := NewCOut(namespace, ioutputType)
+	out := NewCOut(namespace, ioutputType, boost)
 	models, err := parser.Parse(input)
 	if err != nil {
 		fmt.Println(err)

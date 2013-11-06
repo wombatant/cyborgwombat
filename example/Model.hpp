@@ -564,7 +564,7 @@ class Model {
 	friend class unknown;
 	public:
 		/**
-		 * Loads fields of this Model from file of the given path.
+		 * Reads fields of this Model from file of the given path.
 		 */
 		bool readJsonFile(string path);
 

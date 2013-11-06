@@ -6,7 +6,7 @@
 using namespace models;
 using namespace models::cyborgbear;
 
-bool Model::loadJsonFile(string path) {
+bool Model::readJsonFile(string path) {
 	std::ifstream in;
 	in.open(cyborgbear::toCString(path));
 	std::string json;

@@ -566,7 +566,7 @@ class Model {
 		/**
 		 * Loads fields of this Model from file of the given path.
 		 */
-		bool loadJsonFile(string path);
+		bool readJsonFile(string path);
 
 		/**
 		 * Writes JSON representation of this Model to JSON file of the given path.

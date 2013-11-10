@@ -151,6 +151,7 @@ func Parse(input string) ([]*Model, error) {
 					}
 				}
 				i += size
+			} else if t.String() == " " {
 			}
 		case lex.Identifier:
 			models = append(models, &Model{Name: t.String()})

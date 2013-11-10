@@ -13,11 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <sstream>
 #include <iostream>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 #include "Model.hpp"
 
 using namespace std;
 using namespace models;
+
+void testBoost() {
+	//Model1 mod1;
+	//Model1 mod2;
+
+	//mod1.fromJson("{\"Field1\": \"Ni!\", \"Field2\": 1, \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]], \"Field5\": {\"Narf\": \"Ni\"}}");
+
+	//std::stringstream out;
+	//boost::archive::text_oarchive oa(out);
+	//oa << mod1;
+}
 
 int main() {
 	Model1 mod;

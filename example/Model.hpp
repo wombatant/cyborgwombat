@@ -32,6 +32,14 @@ enum JsonSerializationSettings {
 	Readable = 1
 };
 
+enum Type {
+	Bool,
+	Integer,
+	Double,
+	String,
+	Object
+};
+
 #ifdef CYBORGBEAR_USING_QT
 typedef QJsonObject& JsonObj;
 typedef QJsonValue&  JsonVal;
@@ -593,7 +601,8 @@ class Model {
 
 class unknown: public Model {
 	private:
-		cyborgbear::JsonValOut m_obj;
+		cyborgbear::string m_data;
+		cyborgbear::Type m_type;
 	public:
 		unknown();
 		unknown(Model *v);

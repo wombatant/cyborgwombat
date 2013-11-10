@@ -73,7 +73,6 @@ bool unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 	cyborgbear::JsonValOut wrapper = cyborgbear::newJsonObj();
 	cyborgbear::objSet(wrapper, "Value", obj);
 	m_data = cyborgbear::write(wrapper, cyborgbear::Compact);
-	printf("loadJsonObj: %s\n", m_data.c_str());
 	if (cyborgbear::isBool(obj)) {
 		m_type = cyborgbear::Bool;
 	} else if (cyborgbear::isInt(obj)) {
@@ -175,6 +174,16 @@ void unknown::set(string v) {
 	m_data = cyborgbear::write(obj, cyborgbear::Compact);
 	cyborgbear::decref(obj);
 }
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+
+namespace boost {
+namespace serialization {
+
+}
+}
+
+#endif
 
 
 #include "string.h"

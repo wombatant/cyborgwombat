@@ -6,6 +6,7 @@
 #include <sstream>
 
 #define CYBORGBEAR_USING_JANSSON
+#define CYBORGBEAR_BOOST_ENABLED
 
 
 #ifdef CYBORGBEAR_USING_QT
@@ -21,6 +22,13 @@
 #include <map>
 #include <string>
 #include <jansson.h>
+#endif
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 #endif
 
 namespace models {
@@ -600,9 +608,19 @@ class Model {
 };
 
 class unknown: public Model {
-	private:
-		cyborgbear::string m_data;
-		cyborgbear::Type m_type;
+	cyborgbear::string m_data;
+	cyborgbear::Type m_type;
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+	friend class boost::serialization::access;
+
+	template<class Archive>
+	void serialize(Archive &ar, cyborgbear::unknown &model, const unsigned int) {
+		ar & model.m_type;
+		ar & model.m_data;
+	}
+#endif
+
 	public:
 		unknown();
 		unknown(Model *v);

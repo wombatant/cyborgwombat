@@ -428,6 +428,13 @@ func (me *Cpp) buildModelmakerDefsHeader() string {
 #include <jansson.h>
 #endif
 
+#ifdef CYBORGBEAR_BOOST_ENABLED
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#endif
+
 namespace ` + me.namespace + ` {
 
 namespace cyborgbear {
@@ -1005,9 +1012,19 @@ class Model {
 };
 
 class unknown: public Model {
-	private:
-		cyborgbear::string m_data;
-		cyborgbear::Type m_type;
+	cyborgbear::string m_data;
+	cyborgbear::Type m_type;
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+	friend class boost::serialization::access;
+
+	template<class Archive>
+	void serialize(Archive &ar, cyborgbear::unknown &model, const unsigned int) {
+		ar & model.m_type;
+		ar & model.m_data;
+	}
+#endif
+
 	public:
 		unknown();
 		unknown(Model *v);
@@ -1222,6 +1239,16 @@ void unknown::set(string v) {
 	m_data = cyborgbear::write(obj, cyborgbear::Compact);
 	cyborgbear::decref(obj);
 }
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+
+namespace boost {
+namespace serialization {
+
+}
+}
+
+#endif
 `
 	return out
 }

@@ -673,11 +673,11 @@ class Model1: public cyborgbear::Model {
 
 		cyborgbear::JsonValOut buildJsonObj();
 
-		string field1;
-		cyborgbear::unknown field2;
-		int field3[4];
-		std::vector< std::vector< string > > field4;
-		std::map< string, string > field5;
+		string Field1;
+		cyborgbear::unknown Field2;
+		int Field3[4];
+		std::vector< std::vector< string > > Field4;
+		std::map< string, string > Field5;
 };
 
 }
@@ -694,11 +694,11 @@ namespace serialization {
 
 template<class Archive>
 void serialize(Archive &ar, models::Model1 &model, const unsigned int) {
-	ar & model.field1;
-	ar & model.field2;
-	ar & model.field3;
-	ar & model.field4;
-	ar & model.field5;
+	ar & model.Field1;
+	ar & model.Field2;
+	ar & model.Field3;
+	ar & model.Field4;
+	ar & model.Field5;
 }
 
 }

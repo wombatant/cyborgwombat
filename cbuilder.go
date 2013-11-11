@@ -35,12 +35,14 @@ type Cpp struct {
 	namespace    string
 	boostFuncs   string
 	boostEnabled bool
+	lowerCase    bool
 	lib          int
 }
 
-func NewCOut(namespace string, lib int, boost bool) *Cpp {
+func NewCOut(namespace string, lib int, boost, lowerCase bool) *Cpp {
 	out := new(Cpp)
 	out.boostEnabled = boost
+	out.lowerCase = lowerCase
 	out.namespace = namespace
 	out.lib = lib
 	out.hppPrefix = `#include <string>
@@ -109,7 +111,7 @@ func (me *Cpp) buildVar(v, t string, index []parser.VarType) string {
 
 func (me *Cpp) addVar(v string, index []parser.VarType) {
 	jsonV := v
-	if len(v) > 0 && v[0] < 91 {
+	if me.lowerCase && len(v) > 0 && v[0] < 91 {
 		v = string(v[0]+32) + v[1:]
 	}
 	t := me.typeMap(index[len(index)-1].Type)

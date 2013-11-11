@@ -29,6 +29,7 @@ func main() {
 	namespace := flag.String("n", "models", "Namespace for the models")
 	outputType := flag.String("t", "cpp-jansson", "Output type(cpp-jansson, cpp-qt)")
 	boost := flag.Bool("cpp-boost", false, "Boost serialization enabled")
+	lowerCase := flag.Bool("lc", false, "Make variable names lowercase in output models")
 	version := flag.Bool("v", false, "version")
 	flag.Parse()
 
@@ -36,10 +37,10 @@ func main() {
 		fmt.Println("cyborgbear version " + cyborgbear_version)
 		return
 	}
-	parseFile(*in, *out, *namespace, *outputType, *boost)
+	parseFile(*in, *out, *namespace, *outputType, *boost, *lowerCase)
 }
 
-func parseFile(path, outFile, namespace, outputType string, boost bool) {
+func parseFile(path, outFile, namespace, outputType string, boost, lowerCase bool) {
 	ss, err := ioutil.ReadFile(path)
 	if err != nil {
 		fmt.Println("Could not find or open specified model file")
@@ -55,7 +56,7 @@ func parseFile(path, outFile, namespace, outputType string, boost bool) {
 		ioutputType = USING_QT
 	}
 
-	out := NewCOut(namespace, ioutputType, boost)
+	out := NewCOut(namespace, ioutputType, boost, lowerCase)
 	models, err := parser.Parse(input)
 	if err != nil {
 		fmt.Println(err)

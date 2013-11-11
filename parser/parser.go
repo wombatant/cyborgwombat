@@ -152,6 +152,16 @@ func Parse(input string) ([]*Model, error) {
 				}
 				i += size
 			} else if t.String() == " " {
+				for i+1 < len(tokens) {
+					if tokens[i+1].Type != lex.Whitespace {
+						if tokens[i+1].Type == lex.Identifier {
+							return models, fmt.Errorf("Error on line %d: \n\t%s", line, "Error: spaces used for indent")
+						} else {
+							break
+						}
+					}
+					i++
+				}
 			}
 		case lex.Identifier:
 			models = append(models, &Model{Name: t.String()})

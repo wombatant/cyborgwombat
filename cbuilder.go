@@ -431,7 +431,8 @@ func (me *Cpp) buildModelmakerDefsHeader() string {
 #endif
 
 #ifdef CYBORGBEAR_BOOST_ENABLED
-#include <boost/serialization/list.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/map.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>

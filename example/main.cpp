@@ -15,22 +15,31 @@
  */
 #include <sstream>
 #include <iostream>
+#ifdef CYBORGBEAR_BOOST_ENABLED
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
+#endif
 #include "Model.hpp"
 
 using namespace std;
 using namespace models;
 
-void testBoost() {
-	//Model1 mod1;
-	//Model1 mod2;
+void testBoost(string json) {
+#ifdef CYBORGBEAR_BOOST_ENABLED
+	Model1 mod1;
+	Model1 mod2;
 
-	//mod1.fromJson("{\"Field1\": \"Ni!\", \"Field2\": 1, \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]], \"Field5\": {\"Narf\": \"Ni\"}}");
+	mod1.fromJson(json);
 
-	//std::stringstream out;
-	//boost::archive::text_oarchive oa(out);
-	//oa << mod1;
+	stringstream out;
+	{
+		boost::archive::text_oarchive oa(out);
+		oa << mod1;
+	}
+	boost::archive::text_iarchive ia(out);
+	ia >> mod2;
+	cout << "Boost Test: " << (mod2.toJson().compare(json) == 0 ? "Pass" : "Fail") << endl;
+#endif
 }
 
 int main() {
@@ -38,5 +47,7 @@ int main() {
 	mod.fromJson("{\"Field1\": \"Ni!\", \"Field2\": 1, \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]], \"Field5\": {\"Narf\": \"Ni\"}}");
 	mod.Field1 = "Narf!";
 	cout << mod.toJson(cyborgbear::Readable) << endl;
+
+	testBoost(mod.toJson());
 	return 0;
 }

@@ -36,9 +36,12 @@ void testBoost(string json) {
 		boost::archive::text_oarchive oa(out);
 		oa << mod1;
 	}
-	boost::archive::text_iarchive ia(out);
-	ia >> mod2;
-	cout << "Boost Test: " << (mod2.toJson().compare(json) == 0 ? "Pass" : "Fail") << endl;
+	while (out.good())
+		cout << out.get();
+	cout << endl;
+	//boost::archive::text_iarchive ia(out);
+	//ia >> mod2;
+	//cout << "Boost Test: " << (mod2.toJson().compare(json) == 0 ? "Pass" : "Fail") << endl;
 #endif
 }
 

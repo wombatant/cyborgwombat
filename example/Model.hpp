@@ -616,9 +616,9 @@ class unknown: public Model {
 	friend class boost::serialization::access;
 
 	template<class Archive>
-	void serialize(Archive &ar, cyborgbear::unknown &model, const unsigned int) {
-		ar & model.m_type;
-		ar & model.m_data;
+	void serialize(Archive &ar, const unsigned int) {
+		ar & m_type;
+		ar & m_data;
 	}
 #endif
 
@@ -675,7 +675,7 @@ class Model1: public cyborgbear::Model {
 		cyborgbear::JsonValOut buildJsonObj();
 
 		string Field1;
-		int Field2;
+		cyborgbear::unknown Field2;
 		int Field3[4];
 		std::vector< std::vector< string > > Field4;
 		std::map< string, string > Field5;

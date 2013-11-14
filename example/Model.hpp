@@ -591,7 +591,7 @@ class Model {
 		void writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs = Compact);
 
 		/**
-		 * Loads fields of this Model from file of the given path.
+		 * Loads fields of this Model from the given JSON text.
 		 */
 		void fromJson(string json);
 
@@ -599,6 +599,18 @@ class Model {
 		 * Returns JSON representation of this Model.
 		 */
 		string toJson(cyborgbear::JsonSerializationSettings sttngs = Compact);
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+		/**
+		 * Returns Boost serialization version of this object.
+		 */
+		virtual string toBoost() = 0;
+
+		/**
+		 * Loads fields of this Model from the given Boost serialization text.
+		 */
+		virtual void fromBoost(string dat) = 0;
+#endif
 
 #ifdef CYBORGBEAR_USING_QT
 		bool loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
@@ -651,6 +663,18 @@ class unknown: public Model {
 		void set(int v);
 		void set(double v);
 		void set(string v);
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+		/**
+		 * Returns Boost serialization version of this object.
+		 */
+		string toBoost();
+
+		/**
+		 * Loads fields of this Model from the given Boost serialization text.
+		 */
+		void fromBoost(string dat);
+#endif
 };
 
 };
@@ -674,6 +698,9 @@ class Model1: public cyborgbear::Model {
 
 		cyborgbear::JsonValOut buildJsonObj();
 
+		virtual string toBoost();
+
+		virtual void fromBoost(string dat);
 		string Field1;
 		cyborgbear::unknown Field2;
 		int Field3[4];

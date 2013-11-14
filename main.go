@@ -68,7 +68,7 @@ func parseFile(path, outFile, namespace, outputType string, boost, lowerCase boo
 			for _, vv := range v.Vars {
 				out.addVar(vv.Name, vv.Type)
 			}
-			out.closeClass()
+			out.closeClass(v.Name)
 		}
 
 		if outFile == "stdout" {

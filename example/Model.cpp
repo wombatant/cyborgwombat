@@ -177,12 +177,23 @@ void unknown::set(string v) {
 
 #ifdef CYBORGBEAR_BOOST_ENABLED
 
-namespace boost {
-namespace serialization {
-
+void unknown::fromBoost(string dat) {
+	std::stringstream in(dat);
+	boost::archive::text_iarchive ia(in);
+	ia >> *this;
 }
-}
 
+string unknown::toBoost() {
+	std::stringstream out;
+	{
+		boost::archive::text_oarchive oa(out);
+		oa << *this;
+	}
+	string str;
+	while (out.good())
+		str += out.get();
+	return str;
+}
 #endif
 
 
@@ -333,4 +344,28 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 		cyborgbear::decref(out1);
 	}
 	return obj;
+}
+ namespace models {
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+void Model1::fromBoost(string dat) {
+	std::stringstream in(dat);
+	boost::archive::text_iarchive ia(in);
+	ia >> *this;
+}
+
+string Model1::toBoost() {
+	std::stringstream out;
+	{
+		boost::archive::text_oarchive oa(out);
+		oa << *this;
+	}
+
+	string str;
+	while (out.good())
+		str += out.get();
+
+	return str;
+}
+#endif
 }

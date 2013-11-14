@@ -34,6 +34,7 @@ type Cpp struct {
 	writer       string
 	namespace    string
 	boostFuncs   string
+	boostMethods string
 	boostEnabled bool
 	lowerCase    bool
 	lib          int
@@ -132,7 +133,10 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
 	me.hpp += "\n\t\tbool loadJsonObj(cyborgbear::JsonVal obj);\n"
-	me.hpp += "\n\t\tcyborgbear::JsonValOut buildJsonObj();\n\n"
+	me.hpp += "\n\t\tcyborgbear::JsonValOut buildJsonObj();\n"
+	me.hpp += "\n\t\tvirtual string toBoost();\n"
+	me.hpp += "\n\t\tvirtual void fromBoost(string dat);\n"
+
 	me.constructor += v + "::" + v + "() {\n"
 	me.reader += "bool " + v + "::loadJsonObj(cyborgbear::JsonVal in) {\n"
 	me.reader += "\tcyborgbear::JsonObjOut inObj = cyborgbear::toObj(in);"
@@ -142,15 +146,40 @@ func (me *Cpp) addClass(v string) {
 template<class Archive>
 void serialize(Archive &ar, ` + me.namespace + "::" + v + ` &model, const unsigned int) {
 `
+	me.boostMethods += ` namespace ` + me.namespace + ` {
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+void ` + v + `::fromBoost(string dat) {
+	std::stringstream in(dat);
+	boost::archive::text_iarchive ia(in);
+	ia >> *this;
 }
 
-func (me *Cpp) closeClass() {
+string ` + v + `::toBoost() {
+	std::stringstream out;
+	{
+		boost::archive::text_oarchive oa(out);
+		oa << *this;
+	}
+
+	string str;
+	while (out.good())
+		str += out.get();
+
+	return str;
+}
+#endif
+`
+}
+
+func (me *Cpp) closeClass(v string) {
 	me.hpp += "};\n\n"
 	me.hpp += "}\n\n"
 	me.constructor += "}\n\n"
 	me.reader += "\n\treturn true;\n}\n\n"
 	me.writer += "\n\treturn obj;\n}\n\n"
 	me.boostFuncs += "}\n"
+	me.boostMethods += "}\n"
 }
 
 func (me *Cpp) header(fileName string) string {
@@ -195,7 +224,7 @@ using std::stringstream;
 	if len(me.writer) > 1 {
 		writer = me.writer[:len(me.writer)-1]
 	}
-	return include + me.constructor + me.reader + writer
+	return include + me.constructor + me.reader + writer + me.boostMethods
 }
 
 func (me *Cpp) endsWithClose() bool {
@@ -997,7 +1026,7 @@ class Model {
 		void writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs = Compact);
 
 		/**
-		 * Loads fields of this Model from file of the given path.
+		 * Loads fields of this Model from the given JSON text.
 		 */
 		void fromJson(string json);
 
@@ -1005,6 +1034,18 @@ class Model {
 		 * Returns JSON representation of this Model.
 		 */
 		string toJson(cyborgbear::JsonSerializationSettings sttngs = Compact);
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+		/**
+		 * Returns Boost serialization version of this object.
+		 */
+		virtual string toBoost() = 0;
+
+		/**
+		 * Loads fields of this Model from the given Boost serialization text.
+		 */
+		virtual void fromBoost(string dat) = 0;
+#endif
 
 #ifdef CYBORGBEAR_USING_QT
 		bool loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
@@ -1057,6 +1098,18 @@ class unknown: public Model {
 		void set(int v);
 		void set(double v);
 		void set(string v);
+
+#ifdef CYBORGBEAR_BOOST_ENABLED
+		/**
+		 * Returns Boost serialization version of this object.
+		 */
+		string toBoost();
+
+		/**
+		 * Loads fields of this Model from the given Boost serialization text.
+		 */
+		void fromBoost(string dat);
+#endif
 };
 
 };
@@ -1245,12 +1298,23 @@ void unknown::set(string v) {
 
 #ifdef CYBORGBEAR_BOOST_ENABLED
 
-namespace boost {
-namespace serialization {
-
+void unknown::fromBoost(string dat) {
+	std::stringstream in(dat);
+	boost::archive::text_iarchive ia(in);
+	ia >> *this;
 }
-}
 
+string unknown::toBoost() {
+	std::stringstream out;
+	{
+		boost::archive::text_oarchive oa(out);
+		oa << *this;
+	}
+	string str;
+	while (out.good())
+		str += out.get();
+	return str;
+}
 #endif
 `
 	return out

@@ -15,6 +15,7 @@
  */
 #include <sstream>
 #include <iostream>
+#include <fstream>
 #ifdef CYBORGBEAR_BOOST_ENABLED
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -30,18 +31,9 @@ void testBoost(string json) {
 	Model1 mod2;
 
 	mod1.fromJson(json);
+	mod2.fromBoost(mod1.toBoost());
 
-	stringstream out;
-	{
-		boost::archive::text_oarchive oa(out);
-		oa << mod1;
-	}
-	while (out.good())
-		cout << out.get();
-	cout << endl;
-	//boost::archive::text_iarchive ia(out);
-	//ia >> mod2;
-	//cout << "Boost Test: " << (mod2.toJson().compare(json) == 0 ? "Pass" : "Fail") << endl;
+	cout << "Boost Test: " << (mod2.toJson().compare(json) == 0 ? "Pass" : "Fail") << endl;
 #endif
 }
 

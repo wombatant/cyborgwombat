@@ -24,5 +24,5 @@ type Out interface {
 	body(string) string
 	addClass(string)
 	addVar(string, []parser.VarType)
-	closeClass()
+	closeClass(string)
 }

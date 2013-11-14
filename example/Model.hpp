@@ -28,8 +28,8 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/string.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 #endif
 
 namespace models {
@@ -604,12 +604,12 @@ class Model {
 		/**
 		 * Returns Boost serialization version of this object.
 		 */
-		virtual string toBoost() = 0;
+		virtual string toBoostBinary() = 0;
 
 		/**
 		 * Loads fields of this Model from the given Boost serialization text.
 		 */
-		virtual void fromBoost(string dat) = 0;
+		virtual void fromBoostBinary(string dat) = 0;
 #endif
 
 #ifdef CYBORGBEAR_USING_QT
@@ -668,12 +668,12 @@ class unknown: public Model {
 		/**
 		 * Returns Boost serialization version of this object.
 		 */
-		string toBoost();
+		string toBoostBinary();
 
 		/**
 		 * Loads fields of this Model from the given Boost serialization text.
 		 */
-		void fromBoost(string dat);
+		void fromBoostBinary(string dat);
 #endif
 };
 
@@ -698,9 +698,9 @@ class Model1: public cyborgbear::Model {
 
 		cyborgbear::JsonValOut buildJsonObj();
 
-		virtual string toBoost();
+		virtual string toBoostBinary();
 
-		virtual void fromBoost(string dat);
+		virtual void fromBoostBinary(string dat);
 		string Field1;
 		cyborgbear::unknown Field2;
 		int Field3[4];
@@ -714,8 +714,8 @@ class Model1: public cyborgbear::Model {
 #ifdef CYBORGBEAR_BOOST_ENABLED
 #include <boost/serialization/list.hpp>
 #include <boost/serialization/string.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 
 namespace boost {
 namespace serialization {

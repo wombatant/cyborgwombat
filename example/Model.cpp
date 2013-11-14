@@ -177,16 +177,16 @@ void unknown::set(string v) {
 
 #ifdef CYBORGBEAR_BOOST_ENABLED
 
-void unknown::fromBoost(string dat) {
+void unknown::fromBoostBinary(string dat) {
 	std::stringstream in(dat);
-	boost::archive::text_iarchive ia(in);
+	boost::archive::binary_iarchive ia(in);
 	ia >> *this;
 }
 
-string unknown::toBoost() {
+string unknown::toBoostBinary() {
 	std::stringstream out;
 	{
-		boost::archive::text_oarchive oa(out);
+		boost::archive::binary_oarchive oa(out);
 		oa << *this;
 	}
 	string str;
@@ -348,16 +348,16 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
  namespace models {
 
 #ifdef CYBORGBEAR_BOOST_ENABLED
-void Model1::fromBoost(string dat) {
+void Model1::fromBoostBinary(string dat) {
 	std::stringstream in(dat);
-	boost::archive::text_iarchive ia(in);
+	boost::archive::binary_iarchive ia(in);
 	ia >> *this;
 }
 
-string Model1::toBoost() {
+string Model1::toBoostBinary() {
 	std::stringstream out;
 	{
-		boost::archive::text_oarchive oa(out);
+		boost::archive::binary_oarchive oa(out);
 		oa << *this;
 	}
 

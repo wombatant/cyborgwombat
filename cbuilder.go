@@ -134,8 +134,8 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "\n\t\t" + v + "();\n"
 	me.hpp += "\n\t\tbool loadJsonObj(cyborgbear::JsonVal obj);\n"
 	me.hpp += "\n\t\tcyborgbear::JsonValOut buildJsonObj();\n"
-	me.hpp += "\n\t\tvirtual string toBoost();\n"
-	me.hpp += "\n\t\tvirtual void fromBoost(string dat);\n"
+	me.hpp += "\n\t\tvirtual string toBoostBinary();\n"
+	me.hpp += "\n\t\tvirtual void fromBoostBinary(string dat);\n"
 
 	me.constructor += v + "::" + v + "() {\n"
 	me.reader += "bool " + v + "::loadJsonObj(cyborgbear::JsonVal in) {\n"
@@ -149,16 +149,16 @@ void serialize(Archive &ar, ` + me.namespace + "::" + v + ` &model, const unsign
 	me.boostMethods += ` namespace ` + me.namespace + ` {
 
 #ifdef CYBORGBEAR_BOOST_ENABLED
-void ` + v + `::fromBoost(string dat) {
+void ` + v + `::fromBoostBinary(string dat) {
 	std::stringstream in(dat);
-	boost::archive::text_iarchive ia(in);
+	boost::archive::binary_iarchive ia(in);
 	ia >> *this;
 }
 
-string ` + v + `::toBoost() {
+string ` + v + `::toBoostBinary() {
 	std::stringstream out;
 	{
-		boost::archive::text_oarchive oa(out);
+		boost::archive::binary_oarchive oa(out);
 		oa << *this;
 	}
 
@@ -193,8 +193,8 @@ func (me *Cpp) header(fileName string) string {
 #ifdef CYBORGBEAR_BOOST_ENABLED
 #include <boost/serialization/list.hpp>
 #include <boost/serialization/string.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 
 namespace boost {
 namespace serialization {
@@ -463,8 +463,8 @@ func (me *Cpp) buildModelmakerDefsHeader() string {
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/string.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 #endif
 
 namespace ` + me.namespace + ` {
@@ -1039,12 +1039,12 @@ class Model {
 		/**
 		 * Returns Boost serialization version of this object.
 		 */
-		virtual string toBoost() = 0;
+		virtual string toBoostBinary() = 0;
 
 		/**
 		 * Loads fields of this Model from the given Boost serialization text.
 		 */
-		virtual void fromBoost(string dat) = 0;
+		virtual void fromBoostBinary(string dat) = 0;
 #endif
 
 #ifdef CYBORGBEAR_USING_QT
@@ -1103,12 +1103,12 @@ class unknown: public Model {
 		/**
 		 * Returns Boost serialization version of this object.
 		 */
-		string toBoost();
+		string toBoostBinary();
 
 		/**
 		 * Loads fields of this Model from the given Boost serialization text.
 		 */
-		void fromBoost(string dat);
+		void fromBoostBinary(string dat);
 #endif
 };
 
@@ -1298,16 +1298,16 @@ void unknown::set(string v) {
 
 #ifdef CYBORGBEAR_BOOST_ENABLED
 
-void unknown::fromBoost(string dat) {
+void unknown::fromBoostBinary(string dat) {
 	std::stringstream in(dat);
-	boost::archive::text_iarchive ia(in);
+	boost::archive::binary_iarchive ia(in);
 	ia >> *this;
 }
 
-string unknown::toBoost() {
+string unknown::toBoostBinary() {
 	std::stringstream out;
 	{
-		boost::archive::text_oarchive oa(out);
+		boost::archive::binary_oarchive oa(out);
 		oa << *this;
 	}
 	string str;

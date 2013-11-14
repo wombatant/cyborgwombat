@@ -25,15 +25,21 @@
 using namespace std;
 using namespace models;
 
-void testBoost(string json) {
+void testJson(Model1 &orig) {
+	Model1 copy;
+
+	copy.fromJson(orig.toJson());
+
+	cout << "JSON Test:  " << (copy.toJson().compare(orig.toJson()) == 0 ? "Pass" : "Fail") << endl;
+}
+
+void testBoost(Model1 &orig) {
 #ifdef CYBORGBEAR_BOOST_ENABLED
-	Model1 mod1;
-	Model1 mod2;
+	Model1 copy;
 
-	mod1.fromJson(json);
-	mod2.fromBoost(mod1.toBoost());
+	copy.fromBoostBinary(orig.toBoostBinary());
 
-	cout << "Boost Test: " << (mod2.toJson().compare(json) == 0 ? "Pass" : "Fail") << endl;
+	cout << "Boost Test: " << (copy.toJson().compare(orig.toJson()) == 0 ? "Pass" : "Fail") << endl;
 #endif
 }
 
@@ -43,6 +49,7 @@ int main() {
 	mod.Field1 = "Narf!";
 	cout << mod.toJson(cyborgbear::Readable) << endl;
 
-	testBoost(mod.toJson());
+	testJson(mod);
+	testBoost(mod);
 	return 0;
 }

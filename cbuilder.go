@@ -1150,7 +1150,7 @@ void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings stt
 	std::ofstream out;
 	out.open(cyborgbear::toCString(path));
 	std::string json = cyborgbear::toStdString(toJson(sttngs));
-	out << json << "\n";
+	out << json << "\0";
 	out.close();
 }
 
@@ -1273,6 +1273,10 @@ void unknown::set(Model *v) {
 	m_type = cyborgbear::Object;
 	m_data = cyborgbear::write(obj, cyborgbear::Compact);
 	cyborgbear::decref(obj);
+
+	unknown *unk = dynamic_cast<unknown*>(v);
+	if (unk)
+		m_type = unk->m_type;
 }
 
 void unknown::set(bool v) {

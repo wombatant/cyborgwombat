@@ -697,10 +697,12 @@ class Model1: public cyborgbear::Model {
 		bool loadJsonObj(cyborgbear::JsonVal obj);
 
 		cyborgbear::JsonValOut buildJsonObj();
+#ifdef CYBORGBEAR_BOOST_ENABLED
 
 		virtual string toBoostBinary();
 
 		virtual void fromBoostBinary(string dat);
+#endif
 		string Field1;
 		cyborgbear::unknown Field2;
 		int Field3[4];

@@ -134,8 +134,10 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "\n\t\t" + v + "();\n"
 	me.hpp += "\n\t\tbool loadJsonObj(cyborgbear::JsonVal obj);\n"
 	me.hpp += "\n\t\tcyborgbear::JsonValOut buildJsonObj();\n"
+	me.hpp += "#ifdef CYBORGBEAR_BOOST_ENABLED\n"
 	me.hpp += "\n\t\tvirtual string toBoostBinary();\n"
 	me.hpp += "\n\t\tvirtual void fromBoostBinary(string dat);\n"
+	me.hpp += "#endif\n"
 
 	me.constructor += v + "::" + v + "() {\n"
 	me.reader += "bool " + v + "::loadJsonObj(cyborgbear::JsonVal in) {\n"
@@ -1191,7 +1193,7 @@ unknown::~unknown() {
 }
 
 bool unknown::loadJsonObj(cyborgbear::JsonVal obj) {
-	cyborgbear::JsonValOut wrapper = cyborgbear::newJsonObj();
+	cyborgbear::JsonObjOut wrapper = cyborgbear::newJsonObj();
 	cyborgbear::objSet(wrapper, "Value", obj);
 	m_data = cyborgbear::write(wrapper, cyborgbear::Compact);
 	if (cyborgbear::isBool(obj)) {
@@ -1210,8 +1212,12 @@ bool unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 }
 
 cyborgbear::JsonValOut unknown::buildJsonObj() {
-	cyborgbear::JsonValOut obj = cyborgbear::read(m_data);
+	cyborgbear::JsonObjOut obj = cyborgbear::read(m_data);
+#ifdef CYBORGBEAR_USING_QT
+	cyborgbear::JsonValOut val = cyborgbear::objRead(obj, "Value");
+#else
 	cyborgbear::JsonValOut val = cyborgbear::incref(cyborgbear::objRead(obj, "Value"));
+#endif
 	cyborgbear::decref(obj);
 	return val;
 }
@@ -1241,56 +1247,65 @@ bool unknown::isObject() {
 }
 
 bool unknown::toBool() {
-	return cyborgbear::toBool(buildJsonObj());
+	cyborgbear::JsonValOut out = buildJsonObj();
+	return cyborgbear::toBool(out);
 }
 
 int unknown::toInt() {
-	return cyborgbear::toInt(buildJsonObj());
+	cyborgbear::JsonValOut out = buildJsonObj();
+	return cyborgbear::toInt(out);
 }
 
 double unknown::toDouble() {
-	return cyborgbear::toDouble(buildJsonObj());
+	cyborgbear::JsonValOut out = buildJsonObj();
+	return cyborgbear::toDouble(out);
 }
 
 string unknown::toString() {
-	return cyborgbear::toString(buildJsonObj());
+	cyborgbear::JsonValOut out = buildJsonObj();
+	return cyborgbear::toString(out);
 }
 
 void unknown::set(Model *v) {
-	cyborgbear::JsonValOut obj = cyborgbear::newJsonObj();
-	cyborgbear::objSet(obj, "Value", v->buildJsonObj());
+	cyborgbear::JsonObjOut obj = cyborgbear::newJsonObj();
+	cyborgbear::JsonValOut val = v->buildJsonObj();
+	cyborgbear::objSet(obj, "Value", val);
 	m_type = cyborgbear::Object;
 	m_data = cyborgbear::write(obj, cyborgbear::Compact);
 	cyborgbear::decref(obj);
 }
 
 void unknown::set(bool v) {
-	cyborgbear::JsonValOut obj = cyborgbear::newJsonObj();
-	cyborgbear::objSet(obj, "Value", cyborgbear::toJsonVal(v));
+	cyborgbear::JsonObjOut obj = cyborgbear::newJsonObj();
+	cyborgbear::JsonValOut val = cyborgbear::toJsonVal(v);
+	cyborgbear::objSet(obj, "Value", val);
 	m_type = cyborgbear::Bool;
 	m_data = cyborgbear::write(obj, cyborgbear::Compact);
 	cyborgbear::decref(obj);
 }
 
 void unknown::set(int v) {
-	cyborgbear::JsonValOut obj = cyborgbear::newJsonObj();
-	cyborgbear::objSet(obj, "Value", cyborgbear::toJsonVal(v));
+	cyborgbear::JsonObjOut obj = cyborgbear::newJsonObj();
+	cyborgbear::JsonValOut val = cyborgbear::toJsonVal(v);
+	cyborgbear::objSet(obj, "Value", val);
 	m_type = cyborgbear::Integer;
 	m_data = cyborgbear::write(obj, cyborgbear::Compact);
 	cyborgbear::decref(obj);
 }
 
 void unknown::set(double v) {
-	cyborgbear::JsonValOut obj = cyborgbear::newJsonObj();
-	cyborgbear::objSet(obj, "Value", cyborgbear::toJsonVal(v));
+	cyborgbear::JsonObjOut obj = cyborgbear::newJsonObj();
+	cyborgbear::JsonValOut val = cyborgbear::toJsonVal(v);
+	cyborgbear::objSet(obj, "Value", val);
 	m_type = cyborgbear::Double;
 	m_data = cyborgbear::write(obj, cyborgbear::Compact);
 	cyborgbear::decref(obj);
 }
 
 void unknown::set(string v) {
-	cyborgbear::JsonValOut obj = cyborgbear::newJsonObj();
-	cyborgbear::objSet(obj, "Value", cyborgbear::toJsonVal(v));
+	cyborgbear::JsonObjOut obj = cyborgbear::newJsonObj();
+	cyborgbear::JsonValOut val = cyborgbear::toJsonVal(v);
+	cyborgbear::objSet(obj, "Value", val);
 	m_type = cyborgbear::String;
 	m_data = cyborgbear::write(obj, cyborgbear::Compact);
 	cyborgbear::decref(obj);

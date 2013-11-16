@@ -19,9 +19,15 @@ import (
 	"./parser"
 )
 
+const (
+	USING_JANSSON = iota
+	USING_QT      = iota
+	USING_GO      = iota
+)
+
 type Out interface {
-	header(string) string
-	body(string) string
+	write(string) string
+	writeFile(string) error
 	addClass(string)
 	addVar(string, []parser.VarType)
 	closeClass(string)

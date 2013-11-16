@@ -17,13 +17,9 @@ package main
 
 import (
 	"./parser"
+	"io/ioutil"
 	"strconv"
 	"strings"
-)
-
-const (
-	USING_JANSSON = iota
-	USING_QT      = iota
 )
 
 type Cpp struct {
@@ -54,6 +50,20 @@ func NewCOut(namespace string, lib int, boost, lowerCase bool) *Cpp {
 
 `
 	return out
+}
+
+func (me *Cpp) write(outFile string) string {
+	return me.header("") + "\n" + me.body("")
+}
+
+func (me *Cpp) writeFile(outFile string) error {
+	var err error
+	err = ioutil.WriteFile(outFile+".hpp", []byte(me.header(outFile+".hpp")), 0644)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(outFile+".cpp", []byte(me.body(outFile+".hpp")), 0644)
+	return err
 }
 
 func (me *Cpp) typeMap(t string) string {

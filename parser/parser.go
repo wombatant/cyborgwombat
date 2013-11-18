@@ -17,7 +17,7 @@ package parser
 
 import (
 	"fmt"
-	"github.com/gtalent/lex"
+	"../lex"
 	"os"
 )
 

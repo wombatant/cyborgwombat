@@ -142,7 +142,7 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "\nclass " + v + ": public cyborgbear::Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
-	me.hpp += "\n\t\tcyborgbear::Error loadJsonObj(cyborgbear::JsonVal obj);\n"
+	me.hpp += "\n\t\tint loadJsonObj(cyborgbear::JsonVal obj);\n"
 	me.hpp += "\n\t\tcyborgbear::JsonValOut buildJsonObj();\n"
 	me.hpp += "#ifdef CYBORGBEAR_BOOST_ENABLED\n"
 	me.hpp += "\n\t\tvirtual string toBoostBinary();\n"
@@ -150,8 +150,8 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "#endif\n"
 
 	me.constructor += v + "::" + v + "() {\n"
-	me.reader += "cyborgbear::Error " + v + `::loadJsonObj(cyborgbear::JsonVal in) {
-	cyborgbear::Error retval = cyborgbear::Ok;
+	me.reader += "int " + v + `::loadJsonObj(cyborgbear::JsonVal in) {
+	int retval = cyborgbear::Error_Ok;
 	cyborgbear::JsonObjOut inObj = cyborgbear::toObj(in);
 `
 	me.writer += "cyborgbear::JsonValOut " + v + `::buildJsonObj() {
@@ -285,7 +285,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.Else()
-			code.Insert("retval = (cyborgbear::Error) (((int) cyborgbear::TypeMismatch) | ((int) retval));")
+			code.Insert("retval = cyborgbear::Error_TypeMismatch | retval;")
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0].Type == "map" {
@@ -325,25 +325,25 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 			code.PushIfBlock("cyborgbear::isInt(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("this->" + v + sub + " = cyborgbear::toInt(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
-			code.Insert("retval = (cyborgbear::Error) (((int) retval) | ((int) cyborgbear::TypeMismatch));")
+			code.Insert("retval = retval | cyborgbear::Error_TypeMismatch;")
 			code.PopBlock()
 		case "double":
 			code.PushIfBlock("cyborgbear::isDouble(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("this->" + v + sub + " = cyborgbear::toDouble(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
-			code.Insert("retval = (cyborgbear::Error) (((int) retval) | ((int) cyborgbear::TypeMismatch));")
+			code.Insert("retval = retval | cyborgbear::Error_TypeMismatch;")
 			code.PopBlock()
 		case "bool":
 			code.PushIfBlock("cyborgbear::isBool(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("this->" + v + sub + " = cyborgbear::toBool(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
-			code.Insert("retval = (cyborgbear::Error) (((int) retval) | ((int) cyborgbear::TypeMismatch));")
+			code.Insert("retval = retval | cyborgbear::Error_TypeMismatch;")
 			code.PopBlock()
 		case "string":
 			code.PushIfBlock("cyborgbear::isString(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("this->" + v + sub + " = cyborgbear::toString(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
-			code.Insert("retval = (cyborgbear::Error) (((int) retval) | ((int) cyborgbear::TypeMismatch));")
+			code.Insert("retval = retval | cyborgbear::Error_TypeMismatch;")
 			code.PopBlock()
 		case "cyborgbear::unknown":
 			code.Insert("retval = this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
@@ -352,7 +352,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 			code.PushIfBlock("cyborgbear::isObj(finalObj)")
 			code.Insert("this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
-			code.Insert("retval = (cyborgbear::Error) (((int) retval) | ((int) cyborgbear::TypeMismatch));")
+			code.Insert("retval = retval | cyborgbear::Error_TypeMismatch;")
 			code.PopBlock()
 		}
 		code.PopBlock()
@@ -501,12 +501,10 @@ namespace ` + me.namespace + ` {
 
 namespace cyborgbear {
 
-enum Error {
-	Ok = 0,
-	TypeMismatch = 1,
-	CouldNotAccessFile = 2,
-	GenericParsingError = 4
-};
+const int Error_Ok = 0;
+const int Error_TypeMismatch = 1;
+const int Error_CouldNotAccessFile = 2;
+const int Error_GenericParsingError = 4;
 
 enum JsonSerializationSettings {
 	Compact = 0,
@@ -1055,7 +1053,7 @@ class Model {
 		/**
 		 * Reads fields of this Model from file of the given path.
 		 */
-		cyborgbear::Error readJsonFile(string path);
+		int readJsonFile(string path);
 
 		/**
 		 * Writes JSON representation of this Model to JSON file of the given path.
@@ -1065,7 +1063,7 @@ class Model {
 		/**
 		 * Loads fields of this Model from the given JSON text.
 		 */
-		cyborgbear::Error fromJson(string json);
+		int fromJson(string json);
 
 		/**
 		 * Returns JSON representation of this Model.
@@ -1085,11 +1083,11 @@ class Model {
 #endif
 
 #ifdef CYBORGBEAR_USING_QT
-		cyborgbear::Error loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
+		int loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
 #endif
 	protected:
 		virtual cyborgbear::JsonValOut buildJsonObj() = 0;
-		virtual cyborgbear::Error loadJsonObj(cyborgbear::JsonVal obj) = 0;
+		virtual int loadJsonObj(cyborgbear::JsonVal obj) = 0;
 };
 
 class unknown: public Model {
@@ -1116,7 +1114,7 @@ class unknown: public Model {
 		virtual ~unknown();
 
 		bool loaded();
-		cyborgbear::Error loadJsonObj(cyborgbear::JsonVal obj);
+		int loadJsonObj(cyborgbear::JsonVal obj);
 		cyborgbear::JsonValOut buildJsonObj();
 
 		bool toBool();
@@ -1164,7 +1162,7 @@ func (me *Cpp) buildModelmakerDefsBody(headername string) string {
 using namespace ` + me.namespace + `;
 using namespace ` + me.namespace + `::cyborgbear;
 
-cyborgbear::Error Model::readJsonFile(string path) {
+int Model::readJsonFile(string path) {
 	std::ifstream in;
 	in.open(cyborgbear::toCString(path));
 	std::string json;
@@ -1177,7 +1175,7 @@ cyborgbear::Error Model::readJsonFile(string path) {
 		in.close();
 		return fromJson(cyborgbear::toString(json));
 	}
-	return cyborgbear::CouldNotAccessFile;
+	return cyborgbear::Error_CouldNotAccessFile;
 }
 
 void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs) {
@@ -1188,9 +1186,9 @@ void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings stt
 	out.close();
 }
 
-cyborgbear::Error Model::fromJson(string json) {
+int Model::fromJson(string json) {
 	cyborgbear::JsonValOut obj = cyborgbear::read(json);
-	cyborgbear::Error retval = loadJsonObj(obj);
+	int retval = loadJsonObj(obj);
 	cyborgbear::decref(obj);
 	return retval;
 }
@@ -1227,7 +1225,7 @@ unknown::unknown(string v) {
 unknown::~unknown() {
 }
 
-cyborgbear::Error unknown::loadJsonObj(cyborgbear::JsonVal obj) {
+int unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 	cyborgbear::JsonObjOut wrapper = cyborgbear::newJsonObj();
 	cyborgbear::objSet(wrapper, "Value", obj);
 	m_data = cyborgbear::write(wrapper, cyborgbear::Compact);
@@ -1244,9 +1242,9 @@ cyborgbear::Error unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 	}
 
 	if (cyborgbear::isNull(obj)) {
-		return cyborgbear::GenericParsingError;
+		return cyborgbear::Error_GenericParsingError;
 	} else {
-		return cyborgbear::Ok;
+		return cyborgbear::Error_Ok;
 	}
 }
 

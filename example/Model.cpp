@@ -6,7 +6,7 @@
 using namespace models;
 using namespace models::cyborgbear;
 
-bool Model::readJsonFile(string path) {
+cyborgbear::Error Model::readJsonFile(string path) {
 	std::ifstream in;
 	in.open(cyborgbear::toCString(path));
 	std::string json;
@@ -17,10 +17,9 @@ bool Model::readJsonFile(string path) {
 			json += s;
 		}
 		in.close();
-		fromJson(cyborgbear::toString(json));
-		return true;
+		return fromJson(cyborgbear::toString(json));
 	}
-	return false;
+	return cyborgbear::CouldNotAccessFile;
 }
 
 void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs) {
@@ -31,10 +30,11 @@ void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings stt
 	out.close();
 }
 
-void Model::fromJson(string json) {
+cyborgbear::Error Model::fromJson(string json) {
 	cyborgbear::JsonValOut obj = cyborgbear::read(json);
-	loadJsonObj(obj);
+	cyborgbear::Error retval = loadJsonObj(obj);
 	cyborgbear::decref(obj);
+	return retval;
 }
 
 string Model::toJson(cyborgbear::JsonSerializationSettings sttngs) {
@@ -69,7 +69,7 @@ unknown::unknown(string v) {
 unknown::~unknown() {
 }
 
-bool unknown::loadJsonObj(cyborgbear::JsonVal obj) {
+cyborgbear::Error unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 	cyborgbear::JsonObjOut wrapper = cyborgbear::newJsonObj();
 	cyborgbear::objSet(wrapper, "Value", obj);
 	m_data = cyborgbear::write(wrapper, cyborgbear::Compact);
@@ -85,7 +85,11 @@ bool unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 		m_type = cyborgbear::Object;
 	}
 
-	return !cyborgbear::isNull(obj);
+	if (cyborgbear::isNull(obj)) {
+		return cyborgbear::GenericParsingError;
+	} else {
+		return cyborgbear::Ok;
+	}
 }
 
 cyborgbear::JsonValOut unknown::buildJsonObj() {
@@ -222,23 +226,32 @@ using std::stringstream;
 
 Model1::Model1() {
 	this->Field1 = "";
+	this->Field2 = 0;
 	for (int i = 0; i < 4; this->Field3[i++] = 0);
 }
 
-bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
+cyborgbear::Error Model1::loadJsonObj(cyborgbear::JsonVal in) {
+	cyborgbear::Error retval = cyborgbear::Ok;
 	cyborgbear::JsonObjOut inObj = cyborgbear::toObj(in);
+
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field1");
 		{
 			if (cyborgbear::isString(obj0)) {
 				this->Field1 = cyborgbear::toString(obj0);
+			} else {
+				retval = (cyborgbear::Error) (((int) retval) | ((int) cyborgbear::TypeMismatch));
 			}
 		}
 	}
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field2");
 		{
-			this->Field2.loadJsonObj(obj0);
+			if (cyborgbear::isInt(obj0)) {
+				this->Field2 = cyborgbear::toInt(obj0);
+			} else {
+				retval = (cyborgbear::Error) (((int) retval) | ((int) cyborgbear::TypeMismatch));
+			}
 		}
 	}
 	{
@@ -251,6 +264,8 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 				{
 					if (cyborgbear::isInt(obj1)) {
 						this->Field3[i] = cyborgbear::toInt(obj1);
+					} else {
+						retval = (cyborgbear::Error) (((int) retval) | ((int) cyborgbear::TypeMismatch));
 					}
 				}
 			}
@@ -273,6 +288,8 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 						{
 							if (cyborgbear::isString(obj2)) {
 								this->Field4[i][ii] = cyborgbear::toString(obj2);
+							} else {
+								retval = (cyborgbear::Error) (((int) retval) | ((int) cyborgbear::TypeMismatch));
 							}
 						}
 					}
@@ -298,12 +315,14 @@ bool Model1::loadJsonObj(cyborgbear::JsonVal in) {
 				{
 					if (cyborgbear::isString(obj1)) {
 						this->Field5[i] = cyborgbear::toString(obj1);
+					} else {
+						retval = (cyborgbear::Error) (((int) retval) | ((int) cyborgbear::TypeMismatch));
 					}
 				}
 			}
 		}
 	}
-	return true;
+	return retval;
 }
 
 cyborgbear::JsonValOut Model1::buildJsonObj() {
@@ -314,8 +333,7 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 		cyborgbear::decref(out0);
 	}
 	{
-		cyborgbear::JsonValOut obj0 = this->Field2.buildJsonObj();
-		cyborgbear::JsonValOut out0 = obj0;
+		cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->Field2);
 		cyborgbear::objSet(obj, "Field2", out0);
 		cyborgbear::decref(out0);
 	}

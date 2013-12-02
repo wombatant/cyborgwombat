@@ -273,7 +273,8 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 			is += "i"
 		}
 		if index[0].Type == "array" || index[0].Type == "slice" {
-			code.PushIfBlock("!cyborgbear::isNull(obj" + strconv.Itoa(depth) + ") && cyborgbear::isArray(obj" + strconv.Itoa(depth) + ")")
+			code.PushIfBlock("!cyborgbear::isNull(obj" + strconv.Itoa(depth) + ")")
+			code.PushIfBlock("cyborgbear::isArray(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("cyborgbear::JsonArrayOut array" + strconv.Itoa(depth) + " = cyborgbear::toArray(obj" + strconv.Itoa(depth) + ");")
 			code.Insert("unsigned int size = cyborgbear::arraySize(array" + strconv.Itoa(depth) + ");")
 			if index[0].Type == "slice" {
@@ -283,9 +284,13 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 			code.Insert("cyborgbear::JsonValOut obj" + strconv.Itoa(depth+1) + " = cyborgbear::arrayRead(array" + strconv.Itoa(depth) + ", " + is + ");")
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
+			code.Else()
+			code.Insert("retval = (cyborgbear::Error) (((int) cyborgbear::TypeMismatch) | ((int) retval));")
+			code.PopBlock()
 			code.PopBlock()
 		} else if index[0].Type == "map" {
-			code.PushIfBlock("!cyborgbear::isNull(obj" + strconv.Itoa(depth) + ") && cyborgbear::isObj(obj" + strconv.Itoa(depth) + ")")
+			code.PushIfBlock("!cyborgbear::isNull(obj" + strconv.Itoa(depth) + ")")
+			code.PushIfBlock("cyborgbear::isObj(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("cyborgbear::JsonObjOut map" + strconv.Itoa(depth) + " = cyborgbear::toObj(obj" + strconv.Itoa(depth) + ");")
 			code.PushForBlock("cyborgbear::JsonObjIterator it" + strconv.Itoa(depth+1) + " = cyborgbear::jsonObjIterator(map" + strconv.Itoa(depth) + "); !cyborgbear::iteratorAtEnd(it" + strconv.Itoa(depth+1) + ", map" + strconv.Itoa(depth) + "); " + "it" + strconv.Itoa(depth+1) + " = cyborgbear::jsonObjIteratorNext(map" + strconv.Itoa(depth) + ",  it" + strconv.Itoa(depth+1) + ")")
 			code.Insert(index[0].Index + " " + is + ";")
@@ -309,6 +314,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 			code.PopBlock()
 
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
+			code.PopBlock()
 			code.PopBlock()
 			code.PopBlock()
 		}

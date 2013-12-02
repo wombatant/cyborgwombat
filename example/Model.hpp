@@ -711,7 +711,7 @@ class Model1: public cyborgbear::Model {
 		virtual void fromBoostBinary(string dat);
 #endif
 		string Field1;
-		int Field2;
+		cyborgbear::unknown Field2;
 		int Field3[4];
 		std::vector< std::vector< string > > Field4;
 		std::map< string, string > Field5;

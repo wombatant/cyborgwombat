@@ -142,7 +142,7 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "\nclass " + v + ": public cyborgbear::Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
-	me.hpp += "\n\t\tint loadJsonObj(cyborgbear::JsonVal obj);\n"
+	me.hpp += "\n\t\tunsigned long int loadJsonObj(cyborgbear::JsonVal obj);\n"
 	me.hpp += "\n\t\tcyborgbear::JsonValOut buildJsonObj();\n"
 	me.hpp += "#ifdef CYBORGBEAR_BOOST_ENABLED\n"
 	me.hpp += "\n\t\tvirtual string toBoostBinary();\n"
@@ -150,8 +150,8 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "#endif\n"
 
 	me.constructor += v + "::" + v + "() {\n"
-	me.reader += "int " + v + `::loadJsonObj(cyborgbear::JsonVal in) {
-	int retval = cyborgbear::Error_Ok;
+	me.reader += "unsigned long int " + v + `::loadJsonObj(cyborgbear::JsonVal in) {
+	unsigned long int retval = cyborgbear::Error_Ok;
 	cyborgbear::JsonObjOut inObj = cyborgbear::toObj(in);
 `
 	me.writer += "cyborgbear::JsonValOut " + v + `::buildJsonObj() {
@@ -285,7 +285,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.Else()
-			code.Insert("retval = cyborgbear::Error_TypeMismatch | retval;")
+			code.Insert("retval |= cyborgbear::Error_TypeMismatch | retval;")
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0].Type == "map" {
@@ -325,34 +325,54 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 			code.PushIfBlock("cyborgbear::isInt(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("this->" + v + sub + " = cyborgbear::toInt(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
-			code.Insert("retval = retval | cyborgbear::Error_TypeMismatch;")
+			code.PushIfBlock("cyborgbear::isNull(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("retval |= cyborgbear::Error_MissingField;")
+			code.Else()
+			code.Insert("retval |= cyborgbear::Error_TypeMismatch;")
+			code.PopBlock()
 			code.PopBlock()
 		case "double":
 			code.PushIfBlock("cyborgbear::isDouble(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("this->" + v + sub + " = cyborgbear::toDouble(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
-			code.Insert("retval = retval | cyborgbear::Error_TypeMismatch;")
+			code.PushIfBlock("cyborgbear::isNull(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("retval |= cyborgbear::Error_MissingField;")
+			code.Else()
+			code.Insert("retval |= cyborgbear::Error_TypeMismatch;")
+			code.PopBlock()
 			code.PopBlock()
 		case "bool":
 			code.PushIfBlock("cyborgbear::isBool(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("this->" + v + sub + " = cyborgbear::toBool(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
-			code.Insert("retval = retval | cyborgbear::Error_TypeMismatch;")
+			code.PushIfBlock("cyborgbear::isNull(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("retval |= cyborgbear::Error_MissingField;")
+			code.Else()
+			code.Insert("retval |= cyborgbear::Error_TypeMismatch;")
+			code.PopBlock()
 			code.PopBlock()
 		case "string":
 			code.PushIfBlock("cyborgbear::isString(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("this->" + v + sub + " = cyborgbear::toString(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
-			code.Insert("retval = retval | cyborgbear::Error_TypeMismatch;")
+			code.PushIfBlock("cyborgbear::isNull(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("retval |= cyborgbear::Error_MissingField;")
+			code.Else()
+			code.Insert("retval |= cyborgbear::Error_TypeMismatch;")
+			code.PopBlock()
 			code.PopBlock()
 		case "cyborgbear::unknown":
-			code.Insert("retval = this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("retval |= this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
 		default:
 			code.Insert("cyborgbear::JsonValOut finalObj = cyborgbear::toObj(obj" + strconv.Itoa(depth) + ");")
 			code.PushIfBlock("cyborgbear::isObj(finalObj)")
 			code.Insert("this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
-			code.Insert("retval = retval | cyborgbear::Error_TypeMismatch;")
+			code.PushIfBlock("cyborgbear::isNull(obj" + strconv.Itoa(depth) + ")")
+			code.Insert("retval |= cyborgbear::Error_MissingField;")
+			code.Else()
+			code.Insert("retval |= cyborgbear::Error_TypeMismatch;")
+			code.PopBlock()
 			code.PopBlock()
 		}
 		code.PopBlock()
@@ -501,10 +521,11 @@ namespace ` + me.namespace + ` {
 
 namespace cyborgbear {
 
-const int Error_Ok = 0;
-const int Error_TypeMismatch = 1;
-const int Error_CouldNotAccessFile = 2;
-const int Error_GenericParsingError = 4;
+const unsigned long int Error_Ok = 0;
+const unsigned long int Error_TypeMismatch = 1;
+const unsigned long int Error_MissingField = 2;
+const unsigned long int Error_CouldNotAccessFile = 4;
+const unsigned long int Error_GenericParsingError = 8;
 
 enum JsonSerializationSettings {
 	Compact = 0,
@@ -1083,11 +1104,11 @@ class Model {
 #endif
 
 #ifdef CYBORGBEAR_USING_QT
-		int loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
+		unsigned long int loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
 #endif
 	protected:
 		virtual cyborgbear::JsonValOut buildJsonObj() = 0;
-		virtual int loadJsonObj(cyborgbear::JsonVal obj) = 0;
+		virtual unsigned long int loadJsonObj(cyborgbear::JsonVal obj) = 0;
 };
 
 class unknown: public Model {
@@ -1114,7 +1135,7 @@ class unknown: public Model {
 		virtual ~unknown();
 
 		bool loaded();
-		int loadJsonObj(cyborgbear::JsonVal obj);
+		unsigned long int loadJsonObj(cyborgbear::JsonVal obj);
 		cyborgbear::JsonValOut buildJsonObj();
 
 		bool toBool();
@@ -1188,7 +1209,7 @@ void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings stt
 
 int Model::fromJson(string json) {
 	cyborgbear::JsonValOut obj = cyborgbear::read(json);
-	int retval = loadJsonObj(obj);
+	unsigned long int retval = loadJsonObj(obj);
 	cyborgbear::decref(obj);
 	return retval;
 }
@@ -1225,7 +1246,7 @@ unknown::unknown(string v) {
 unknown::~unknown() {
 }
 
-int unknown::loadJsonObj(cyborgbear::JsonVal obj) {
+unsigned long int unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 	cyborgbear::JsonObjOut wrapper = cyborgbear::newJsonObj();
 	cyborgbear::objSet(wrapper, "Value", obj);
 	m_data = cyborgbear::write(wrapper, cyborgbear::Compact);

@@ -45,7 +45,7 @@ void testBoost(Model1 &orig) {
 
 int main() {
 	Model1 mod;
-	mod.fromJson("{\"Field1\": \"Ni!\", \"Field2\": 1, \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]], \"Field5\": {\"Narf\": \"Ni\"}}");
+	mod.fromJson("{\"Field1\": \"Ni!\", \"Field2\": \"asdf\", \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]], \"Field5\": {\"Narf\": \"Ni\"}}");
 	mod.Field1 = "Narf!";
 	cout << mod.toJson(cyborgbear::Readable) << endl;
 

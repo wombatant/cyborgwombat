@@ -285,7 +285,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 			me.buildReader(code, v, jsonV, t, sub+"["+is+"]", index[1:], depth+1)
 			code.PopBlock()
 			code.Else()
-			code.Insert("retval |= cyborgbear::Error_TypeMismatch | retval;")
+			code.Insert("retval |= cyborgbear::Error_TypeMismatch;")
 			code.PopBlock()
 			code.PopBlock()
 		} else if index[0].Type == "map" {
@@ -366,7 +366,7 @@ func (me *Cpp) buildReader(code *CppCode, v, jsonV, t, sub string, index []parse
 		default:
 			code.Insert("cyborgbear::JsonValOut finalObj = cyborgbear::toObj(obj" + strconv.Itoa(depth) + ");")
 			code.PushIfBlock("cyborgbear::isObj(finalObj)")
-			code.Insert("this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
+			code.Insert("retval |= this->" + v + sub + ".loadJsonObj(obj" + strconv.Itoa(depth) + ");")
 			code.Else()
 			code.PushIfBlock("cyborgbear::isNull(obj" + strconv.Itoa(depth) + ")")
 			code.Insert("retval |= cyborgbear::Error_MissingField;")

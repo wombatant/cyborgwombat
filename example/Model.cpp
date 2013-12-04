@@ -274,7 +274,7 @@ unsigned long int Model1::loadJsonObj(cyborgbear::JsonVal in) {
 					}
 				}
 			} else {
-				retval |= cyborgbear::Error_TypeMismatch | retval;
+				retval |= cyborgbear::Error_TypeMismatch;
 			}
 		}
 	}
@@ -307,12 +307,12 @@ unsigned long int Model1::loadJsonObj(cyborgbear::JsonVal in) {
 								}
 							}
 						} else {
-							retval |= cyborgbear::Error_TypeMismatch | retval;
+							retval |= cyborgbear::Error_TypeMismatch;
 						}
 					}
 				}
 			} else {
-				retval |= cyborgbear::Error_TypeMismatch | retval;
+				retval |= cyborgbear::Error_TypeMismatch;
 			}
 		}
 	}

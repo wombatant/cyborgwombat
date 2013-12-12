@@ -6,6 +6,7 @@
 #include <sstream>
 
 #define CYBORGBEAR_USING_JANSSON
+#define CYBORGBEAR_BOOST_ENABLED
 
 
 #ifdef CYBORGBEAR_USING_QT
@@ -89,6 +90,11 @@ typedef std::string string;
 
 typedef unsigned VectorIterator;
 #endif
+
+/**
+ * Version of cyborgbear.
+ */
+extern string version;
 
 //string ops
 std::string toStdString(string str);

@@ -160,7 +160,8 @@ func (me *Cpp) addClass(v string) {
 template<class Archive>
 void serialize(Archive &ar, ` + me.namespace + "::" + v + ` &model, const unsigned int) {
 `
-	me.boostMethods += ` namespace ` + me.namespace + ` {
+	me.boostMethods += `
+namespace ` + me.namespace + ` {
 
 #ifdef CYBORGBEAR_BOOST_ENABLED
 void ` + v + `::fromBoostBinary(string dat) {
@@ -575,6 +576,11 @@ typedef std::string string;
 
 typedef unsigned VectorIterator;
 #endif
+
+/**
+ * Version of cyborgbear.
+ */
+extern string version;
 
 //string ops
 std::string toStdString(string str);
@@ -1182,6 +1188,8 @@ func (me *Cpp) buildModelmakerDefsBody(headername string) string {
 
 using namespace ` + me.namespace + `;
 using namespace ` + me.namespace + `::cyborgbear;
+
+string ` + me.namespace + `::cyborgbear::version = "` + cyborgbear_version + `";
 
 int Model::readJsonFile(string path) {
 	std::ifstream in;

@@ -6,6 +6,8 @@
 using namespace models;
 using namespace models::cyborgbear;
 
+string models::cyborgbear::version = "1.0.0-beta7";
+
 int Model::readJsonFile(string path) {
 	std::ifstream in;
 	in.open(cyborgbear::toCString(path));
@@ -401,7 +403,8 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 	}
 	return obj;
 }
- namespace models {
+
+namespace models {
 
 #ifdef CYBORGBEAR_BOOST_ENABLED
 void Model1::fromBoostBinary(string dat) {

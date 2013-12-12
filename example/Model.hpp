@@ -6,7 +6,6 @@
 #include <sstream>
 
 #define CYBORGBEAR_USING_JANSSON
-#define CYBORGBEAR_BOOST_ENABLED
 
 
 #ifdef CYBORGBEAR_USING_QT

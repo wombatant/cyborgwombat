@@ -9,13 +9,8 @@ using namespace models::cyborgbear;
 int Model::readJsonFile(string path) {
 	std::ifstream in;
 	in.open(cyborgbear::toCString(path));
-	std::string json;
 	if (in.is_open()) {
-		while (in.good()) {
-			std::string s;
-			in >> s;
-			json += s;
-		}
+		std::string json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 		in.close();
 		return fromJson(cyborgbear::toString(json));
 	}

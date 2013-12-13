@@ -3,4 +3,4 @@ cpp:
 	c++ main.cpp Model.cpp -o main -ljansson -lboost_serialization
 go:
 	../cyborgbear -i model.cy -o models.go -t go
-	go build
+	go build models.go

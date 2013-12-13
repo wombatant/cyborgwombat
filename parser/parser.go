@@ -16,8 +16,8 @@
 package parser
 
 import (
-	"fmt"
 	"../lex"
+	"fmt"
 	"os"
 )
 
@@ -165,6 +165,15 @@ func Parse(input string) ([]*Model, error) {
 			}
 		case lex.Identifier:
 			models = append(models, &Model{Name: t.String()})
+			i++
+			for i < len(tokens) {
+				if tokens[i].Type == lex.Identifier {
+					return models, fmt.Errorf("Error on line %d: \n\t%s", line, "Error: Second identifier on same line as model declartion")
+				} else if tokens[i].String() == "\n" {
+					break
+				}
+				i++
+			}
 		default:
 			err = fmt.Errorf("Error on line %d: \n\tError: unexpected token", line+1)
 			return models, err

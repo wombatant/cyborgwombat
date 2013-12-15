@@ -142,7 +142,7 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "\nclass " + v + ": public cyborgbear::Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
-	me.hpp += "\n\t\tunsigned long int loadJsonObj(cyborgbear::JsonVal obj);\n"
+	me.hpp += "\n\t\tcyborgbear::Error loadJsonObj(cyborgbear::JsonVal obj);\n"
 	me.hpp += "\n\t\tcyborgbear::JsonValOut buildJsonObj();\n"
 	me.hpp += "#ifdef CYBORGBEAR_BOOST_ENABLED\n"
 	me.hpp += "\n\t\tvirtual string toBoostBinary();\n"
@@ -150,8 +150,8 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "#endif\n"
 
 	me.constructor += v + "::" + v + "() {\n"
-	me.reader += "unsigned long int " + v + `::loadJsonObj(cyborgbear::JsonVal in) {
-	unsigned long int retval = cyborgbear::Error_Ok;
+	me.reader += "cyborgbear::Error " + v + `::loadJsonObj(cyborgbear::JsonVal in) {
+	cyborgbear::Error retval = cyborgbear::Error_Ok;
 	cyborgbear::JsonObjOut inObj = cyborgbear::toObj(in);
 `
 	me.writer += "cyborgbear::JsonValOut " + v + `::buildJsonObj() {
@@ -522,11 +522,12 @@ namespace ` + me.namespace + ` {
 
 namespace cyborgbear {
 
-const unsigned long int Error_Ok = 0;
-const unsigned long int Error_TypeMismatch = 1;
-const unsigned long int Error_MissingField = 2;
-const unsigned long int Error_CouldNotAccessFile = 4;
-const unsigned long int Error_GenericParsingError = 8;
+typedef unsigned long int Error;
+const Error Error_Ok = 0;
+const Error Error_TypeMismatch = 1;
+const Error Error_MissingField = 2;
+const Error Error_CouldNotAccessFile = 4;
+const Error Error_GenericParsingError = 8;
 
 enum JsonSerializationSettings {
 	Compact = 0,
@@ -1110,11 +1111,11 @@ class Model {
 #endif
 
 #ifdef CYBORGBEAR_USING_QT
-		unsigned long int loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
+		cyborgbear::Error loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
 #endif
 	protected:
 		virtual cyborgbear::JsonValOut buildJsonObj() = 0;
-		virtual unsigned long int loadJsonObj(cyborgbear::JsonVal obj) = 0;
+		virtual cyborgbear::Error loadJsonObj(cyborgbear::JsonVal obj) = 0;
 };
 
 class unknown: public Model {
@@ -1141,7 +1142,7 @@ class unknown: public Model {
 		virtual ~unknown();
 
 		bool loaded();
-		unsigned long int loadJsonObj(cyborgbear::JsonVal obj);
+		cyborgbear::Error loadJsonObj(cyborgbear::JsonVal obj);
 		cyborgbear::JsonValOut buildJsonObj();
 
 		bool toBool();
@@ -1212,7 +1213,7 @@ void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings stt
 
 int Model::fromJson(string json) {
 	cyborgbear::JsonValOut obj = cyborgbear::read(json);
-	unsigned long int retval = loadJsonObj(obj);
+	cyborgbear::Error retval = loadJsonObj(obj);
 	cyborgbear::decref(obj);
 	return retval;
 }
@@ -1249,7 +1250,7 @@ unknown::unknown(string v) {
 unknown::~unknown() {
 }
 
-unsigned long int unknown::loadJsonObj(cyborgbear::JsonVal obj) {
+cyborgbear::Error unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 	cyborgbear::JsonObjOut wrapper = cyborgbear::newJsonObj();
 	cyborgbear::objSet(wrapper, "Value", obj);
 	m_data = cyborgbear::write(wrapper, cyborgbear::Compact);

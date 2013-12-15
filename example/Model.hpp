@@ -36,11 +36,12 @@ namespace models {
 
 namespace cyborgbear {
 
-const unsigned long int Error_Ok = 0;
-const unsigned long int Error_TypeMismatch = 1;
-const unsigned long int Error_MissingField = 2;
-const unsigned long int Error_CouldNotAccessFile = 4;
-const unsigned long int Error_GenericParsingError = 8;
+typedef unsigned long int Error;
+const Error Error_Ok = 0;
+const Error Error_TypeMismatch = 1;
+const Error Error_MissingField = 2;
+const Error Error_CouldNotAccessFile = 4;
+const Error Error_GenericParsingError = 8;
 
 enum JsonSerializationSettings {
 	Compact = 0,
@@ -624,11 +625,11 @@ class Model {
 #endif
 
 #ifdef CYBORGBEAR_USING_QT
-		unsigned long int loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
+		cyborgbear::Error loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
 #endif
 	protected:
 		virtual cyborgbear::JsonValOut buildJsonObj() = 0;
-		virtual unsigned long int loadJsonObj(cyborgbear::JsonVal obj) = 0;
+		virtual cyborgbear::Error loadJsonObj(cyborgbear::JsonVal obj) = 0;
 };
 
 class unknown: public Model {
@@ -655,7 +656,7 @@ class unknown: public Model {
 		virtual ~unknown();
 
 		bool loaded();
-		unsigned long int loadJsonObj(cyborgbear::JsonVal obj);
+		cyborgbear::Error loadJsonObj(cyborgbear::JsonVal obj);
 		cyborgbear::JsonValOut buildJsonObj();
 
 		bool toBool();
@@ -705,7 +706,7 @@ class Model1: public cyborgbear::Model {
 
 		Model1();
 
-		unsigned long int loadJsonObj(cyborgbear::JsonVal obj);
+		cyborgbear::Error loadJsonObj(cyborgbear::JsonVal obj);
 
 		cyborgbear::JsonValOut buildJsonObj();
 #ifdef CYBORGBEAR_BOOST_ENABLED

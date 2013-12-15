@@ -6,7 +6,7 @@
 using namespace models;
 using namespace models::cyborgbear;
 
-string models::cyborgbear::version = "1.0.0-beta7";
+string models::cyborgbear::version = "1.0.0-beta8";
 
 int Model::readJsonFile(string path) {
 	std::ifstream in;
@@ -29,7 +29,7 @@ void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings stt
 
 int Model::fromJson(string json) {
 	cyborgbear::JsonValOut obj = cyborgbear::read(json);
-	unsigned long int retval = loadJsonObj(obj);
+	cyborgbear::Error retval = loadJsonObj(obj);
 	cyborgbear::decref(obj);
 	return retval;
 }
@@ -66,7 +66,7 @@ unknown::unknown(string v) {
 unknown::~unknown() {
 }
 
-unsigned long int unknown::loadJsonObj(cyborgbear::JsonVal obj) {
+cyborgbear::Error unknown::loadJsonObj(cyborgbear::JsonVal obj) {
 	cyborgbear::JsonObjOut wrapper = cyborgbear::newJsonObj();
 	cyborgbear::objSet(wrapper, "Value", obj);
 	m_data = cyborgbear::write(wrapper, cyborgbear::Compact);
@@ -226,8 +226,8 @@ Model1::Model1() {
 	for (int i = 0; i < 4; this->Field3[i++] = 0);
 }
 
-unsigned long int Model1::loadJsonObj(cyborgbear::JsonVal in) {
-	unsigned long int retval = cyborgbear::Error_Ok;
+cyborgbear::Error Model1::loadJsonObj(cyborgbear::JsonVal in) {
+	cyborgbear::Error retval = cyborgbear::Error_Ok;
 	cyborgbear::JsonObjOut inObj = cyborgbear::toObj(in);
 
 	{

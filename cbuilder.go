@@ -483,6 +483,9 @@ func (me *Cpp) buildWriter(v, jsonV, t string, index []parser.VarType) string {
 	return out.String()
 }
 
+func (me *Cpp) addValidator(v, jsonV, t string, index []parser.VarType) {
+}
+
 func (me *Cpp) buildModelmakerDefsHeader() string {
 	using := ""
 	if me.lib == USING_QT {
@@ -664,11 +667,13 @@ inline std::string toStdString(string str) {
 }
 
 inline const char* toCString(std::string str) {
-	return str.c_str();
+	const char *out = str.c_str();
+	return out;
 }
 
 inline const char* toCString(string str) {
-	return toStdString(str).c_str();
+	const char *out = toStdString(str).c_str();
+	return out;
 }
 
 inline string toString(std::string str) {
@@ -916,7 +921,8 @@ inline std::string toStdString(string str) {
 }
 
 inline const char* toCString(string str) {
-	return str.c_str();
+	const char *out = str.c_str();
+	return out;
 }
 
 
@@ -1194,7 +1200,7 @@ string ` + me.namespace + `::cyborgbear::version = "` + cyborgbear_version + `";
 
 int Model::readJsonFile(string path) {
 	std::ifstream in;
-	in.open(cyborgbear::toCString(path));
+	in.open(cyborgbear::toStdString(path));
 	if (in.is_open()) {
 		std::string json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 		in.close();
@@ -1205,7 +1211,7 @@ int Model::readJsonFile(string path) {
 
 void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs) {
 	std::ofstream out;
-	out.open(cyborgbear::toCString(path));
+	out.open(cyborgbear::toStdString(path));
 	std::string json = cyborgbear::toStdString(toJson(sttngs));
 	out << json << "\0";
 	out.close();

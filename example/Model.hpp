@@ -178,11 +178,13 @@ inline std::string toStdString(string str) {
 }
 
 inline const char* toCString(std::string str) {
-	return str.c_str();
+	const char *out = str.c_str();
+	return out;
 }
 
 inline const char* toCString(string str) {
-	return toStdString(str).c_str();
+	const char *out = toStdString(str).c_str();
+	return out;
 }
 
 inline string toString(std::string str) {
@@ -430,7 +432,8 @@ inline std::string toStdString(string str) {
 }
 
 inline const char* toCString(string str) {
-	return str.c_str();
+	const char *out = str.c_str();
+	return out;
 }
 
 

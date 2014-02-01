@@ -590,7 +590,6 @@ extern string version;
 
 //string ops
 std::string toStdString(string str);
-const char* toCString(string str);
 
 
 JsonObjOut read(string json);
@@ -666,16 +665,6 @@ inline string toString(string str) {
 //string conversions
 inline std::string toStdString(string str) {
 	return str.toStdString();
-}
-
-inline const char* toCString(std::string str) {
-	const char *out = str.c_str();
-	return out;
-}
-
-inline const char* toCString(string str) {
-	const char *out = toStdString(str).c_str();
-	return out;
 }
 
 inline string toString(std::string str) {
@@ -920,11 +909,6 @@ inline string write(JsonObj obj, JsonSerializationSettings sttngs) {
 
 inline std::string toStdString(string str) {
 	return str;
-}
-
-inline const char* toCString(string str) {
-	const char *out = str.c_str();
-	return out;
 }
 
 
@@ -1202,7 +1186,7 @@ string ` + me.namespace + `::cyborgbear::version = "` + cyborgbear_version + `";
 
 int Model::readJsonFile(string path) {
 	std::ifstream in;
-	in.open(cyborgbear::toCString(path));
+	in.open(cyborgbear::toStdString(path).c_str());
 	if (in.is_open()) {
 		std::string json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 		in.close();
@@ -1213,7 +1197,7 @@ int Model::readJsonFile(string path) {
 
 void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs) {
 	std::ofstream out;
-	out.open(cyborgbear::toCString(path));
+	out.open(cyborgbear::toStdString(path).c_str());
 	std::string json = cyborgbear::toStdString(toJson(sttngs));
 	out << json << "\0";
 	out.close();

@@ -6,11 +6,11 @@
 using namespace models;
 using namespace models::cyborgbear;
 
-string models::cyborgbear::version = "1.0.0-beta8";
+string models::cyborgbear::version = "1.0.0-beta9";
 
 int Model::readJsonFile(string path) {
 	std::ifstream in;
-	in.open(cyborgbear::toStdString(path));
+	in.open(cyborgbear::toCString(path));
 	if (in.is_open()) {
 		std::string json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 		in.close();
@@ -21,7 +21,7 @@ int Model::readJsonFile(string path) {
 
 void Model::writeJsonFile(string path, cyborgbear::JsonSerializationSettings sttngs) {
 	std::ofstream out;
-	out.open(cyborgbear::toStdString(path));
+	out.open(cyborgbear::toCString(path));
 	std::string json = cyborgbear::toStdString(toJson(sttngs));
 	out << json << "\0";
 	out.close();

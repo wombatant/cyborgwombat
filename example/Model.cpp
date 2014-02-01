@@ -6,7 +6,7 @@
 using namespace models;
 using namespace models::cyborgbear;
 
-string models::cyborgbear::version = "1.0.0-beta9";
+string models::cyborgbear::version = "1.0.0-beta10";
 
 int Model::readJsonFile(string path) {
 	std::ifstream in;

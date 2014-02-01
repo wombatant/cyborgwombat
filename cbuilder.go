@@ -70,10 +70,12 @@ func (me *Cpp) typeMap(t string) string {
 	switch t {
 	case "float", "float32", "float64", "double":
 		return "double"
+	case "int", "bool", "string":
+		return t
 	case "unknown":
 		return "cyborgbear::unknown"
 	default:
-		return t
+		return me.namespace + "::" + t
 	}
 	return t
 }

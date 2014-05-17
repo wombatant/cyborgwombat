@@ -9,12 +9,15 @@ using namespace models::cyborgbear;
 string models::cyborgbear::version = "1.1.0";
 
 int Model::readJsonFile(string path) {
-	std::ifstream in;
-	in.open(cyborgbear::toStdString(path).c_str());
-	if (in.is_open()) {
-		std::string json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-		in.close();
-		return fromJson(cyborgbear::toString(json));
+	try {
+		std::ifstream in;
+		in.open(cyborgbear::toStdString(path).c_str());
+		if (in.is_open()) {
+			std::string json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+			in.close();
+			return fromJson(cyborgbear::toString(json));
+		}
+	} catch (...) {
 	}
 	return cyborgbear::Error_CouldNotAccessFile;
 }

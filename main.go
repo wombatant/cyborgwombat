@@ -16,9 +16,9 @@
 package main
 
 import (
-	"github.com/gtalent/cyborgbear/parser"
 	"flag"
 	"fmt"
+	"github.com/gtalent/cyborgbear/parser"
 	"io/ioutil"
 	"os"
 )

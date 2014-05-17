@@ -28,6 +28,8 @@ type Cpp struct {
 	constructor  string
 	reader       string
 	writer       string
+	equals       string
+	notEquals    string
 	namespace    string
 	boostFuncs   string
 	boostMethods string
@@ -135,6 +137,8 @@ func (me *Cpp) addVar(v string, index []parser.VarType) {
 	me.constructor += me.buildConstructor(v, t, index)
 	me.reader += me.buildReader(&reader, v, jsonV, t, "", index, 0)
 	me.writer += me.buildWriter(v, jsonV, t, index)
+	me.equals += me.buildEquals(v)
+	me.notEquals += me.buildNotEquals(v)
 	me.boostFuncs += me.buildBoostSerialize(v)
 }
 
@@ -146,6 +150,8 @@ func (me *Cpp) addClass(v string) {
 	me.hpp += "\n\t\t" + v + "();\n"
 	me.hpp += "\n\t\tcyborgbear::Error loadJsonObj(cyborgbear::JsonVal obj);\n"
 	me.hpp += "\n\t\tcyborgbear::JsonValOut buildJsonObj();\n"
+	me.hpp += "\n\t\tbool operator==(const " + v + "&) const;\n"
+	me.hpp += "\n\t\tbool operator!=(const " + v + "&) const;\n"
 	me.hpp += "#ifdef CYBORGBEAR_BOOST_ENABLED\n"
 	me.hpp += "\n\t\tvirtual string toBoostBinary();\n"
 	me.hpp += "\n\t\tvirtual void fromBoostBinary(string dat);\n"
@@ -158,6 +164,8 @@ func (me *Cpp) addClass(v string) {
 `
 	me.writer += "cyborgbear::JsonValOut " + v + `::buildJsonObj() {
 	cyborgbear::JsonObjOut obj = cyborgbear::newJsonObj();`
+	me.equals += "bool " + v + "::operator==(const " + v + " &o) const {\n"
+	me.notEquals += "bool " + v + "::operator!=(const " + v + " &o) const {\n"
 	me.boostFuncs += `
 template<class Archive>
 void serialize(Archive &ar, ` + me.namespace + "::" + v + ` &model, const unsigned int) {
@@ -195,6 +203,8 @@ func (me *Cpp) closeClass(v string) {
 	me.constructor += "}\n\n"
 	me.reader += "\n\treturn retval;\n}\n\n"
 	me.writer += "\n\treturn obj;\n}\n\n"
+	me.equals += "\n\treturn true;\n}\n\n"
+	me.notEquals += "\n\treturn false;\n}\n\n"
 	me.boostFuncs += "}\n"
 	me.boostMethods += "}\n"
 }
@@ -241,7 +251,7 @@ using std::stringstream;
 	if len(me.writer) > 1 {
 		writer = me.writer[:len(me.writer)-1]
 	}
-	return include + me.constructor + me.reader + writer + me.boostMethods
+	return include + me.constructor + me.reader + writer + me.equals + me.notEquals + me.boostMethods
 }
 
 func (me *Cpp) endsWithClose() bool {
@@ -485,7 +495,12 @@ func (me *Cpp) buildWriter(v, jsonV, t string, index []parser.VarType) string {
 	return out.String()
 }
 
-func (me *Cpp) addValidator(v, jsonV, t string, index []parser.VarType) {
+func (me *Cpp) buildEquals(v string) string {
+	return "\tif (" + v + " != o." + v + ") return false;\n"
+}
+
+func (me *Cpp) buildNotEquals(v string) string {
+	return "\tif (" + v + " != o." + v + ") return true;\n"
 }
 
 func (me *Cpp) buildModelmakerDefsHeader() string {
@@ -1154,6 +1169,9 @@ class unknown: public Model {
 		void set(double v);
 		void set(string v);
 
+		bool operator==(const unknown&) const;
+		bool operator!=(const unknown&) const;
+
 #ifdef CYBORGBEAR_BOOST_ENABLED
 		/**
 		 * Returns Boost serialization version of this object.
@@ -1367,6 +1385,14 @@ void unknown::set(string v) {
 	m_type = cyborgbear::String;
 	m_data = cyborgbear::write(obj, cyborgbear::Compact);
 	cyborgbear::decref(obj);
+}
+
+bool unknown::operator==(const unknown &o) const {
+	return m_type == o.m_type && m_data == o.m_data;
+}
+
+bool unknown::operator!=(const unknown &o) const {
+	return m_type != o.m_type || m_data != o.m_data;
 }
 
 #ifdef CYBORGBEAR_BOOST_ENABLED

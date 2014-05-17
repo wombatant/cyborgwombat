@@ -6,7 +6,7 @@
 using namespace models;
 using namespace models::cyborgbear;
 
-string models::cyborgbear::version = "1.0.0-beta10";
+string models::cyborgbear::version = "1.1.0";
 
 int Model::readJsonFile(string path) {
 	std::ifstream in;
@@ -191,6 +191,14 @@ void unknown::set(string v) {
 	m_type = cyborgbear::String;
 	m_data = cyborgbear::write(obj, cyborgbear::Compact);
 	cyborgbear::decref(obj);
+}
+
+bool unknown::operator==(const unknown &o) const {
+	return m_type == o.m_type && m_data == o.m_data;
+}
+
+bool unknown::operator!=(const unknown &o) const {
+	return m_type != o.m_type || m_data != o.m_data;
 }
 
 #ifdef CYBORGBEAR_BOOST_ENABLED
@@ -403,6 +411,26 @@ cyborgbear::JsonValOut Model1::buildJsonObj() {
 	}
 	return obj;
 }
+bool Model1::operator==(const Model1 &o) const {
+	if (Field1 != o.Field1) return false;
+	if (Field2 != o.Field2) return false;
+	if (Field3 != o.Field3) return false;
+	if (Field4 != o.Field4) return false;
+	if (Field5 != o.Field5) return false;
+
+	return true;
+}
+
+bool Model1::operator!=(const Model1 &o) const {
+	if (Field1 != o.Field1) return true;
+	if (Field2 != o.Field2) return true;
+	if (Field3 != o.Field3) return true;
+	if (Field4 != o.Field4) return true;
+	if (Field5 != o.Field5) return true;
+
+	return false;
+}
+
 
 namespace models {
 

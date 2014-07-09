@@ -103,10 +103,10 @@ std::string toStdString(string str);
 
 JsonObjOut read(string json);
 
-int toInt(JsonVal);
-double toDouble(JsonVal);
-bool toBool(JsonVal);
-string toString(JsonVal);
+cyborgbear::Error readVal(JsonVal, int&);
+cyborgbear::Error readVal(JsonVal, double&);
+cyborgbear::Error readVal(JsonVal, bool&);
+cyborgbear::Error readVal(JsonVal, string&);
 JsonArrayOut toArray(JsonVal);
 JsonObjOut toObj(JsonVal);
 
@@ -120,12 +120,27 @@ JsonValOut toJsonVal(JsonObj);
 
 //value methods
 
-bool isBool(JsonVal);
-bool isInt(JsonVal);
-bool isDouble(JsonVal);
-bool isString(JsonVal);
-bool isArray(JsonVal);
-bool isObj(JsonVal);
+template<typename T>
+bool isBool(T);
+
+template<typename T>
+bool isInt(T);
+
+template<typename T>
+bool isDouble(T);
+
+template<typename T>
+bool isString(T);
+
+template<typename T>
+bool isArray(T);
+
+template<typename T>
+bool isObj(T);
+
+template<typename T>
+bool isNull(T v);
+
 
 JsonObj incref(JsonObj);
 JsonVal incref(JsonVal);
@@ -186,54 +201,75 @@ inline JsonObjOut read(string json) {
 }
 
 
-//from JsonObjIteratorVal
-inline int toInt(JsonObjIteratorVal v) {
-	return (int) v.toDouble();
+//from JsonObj or JsonObjIteratorVal
+template<typename T>
+inline cyborgbear::Error readVal(T v, int &val) {
+	int retval = cyborgbear::Error_Ok;
+	if (cyborgbear::isInt(v)) {
+		val = v.toInt();
+	} else {
+		if (cyborgbear::isNull(v)) {
+			retval |= cyborgbear::Error_MissingField;
+		} else {
+			retval |= cyborgbear::Error_TypeMismatch;
+		}
+	}
+	return retval;
 }
 
-inline double toDouble(JsonObjIteratorVal v) {
-	return v.toDouble();
+template<typename T>
+inline cyborgbear::Error readVal(T v, double &val) {
+	int retval = cyborgbear::Error_Ok;
+	if (cyborgbear::isDouble(v)) {
+		val = v.toDouble();
+	} else {
+		if (cyborgbear::isNull(v)) {
+			retval |= cyborgbear::Error_MissingField;
+		} else {
+			retval |= cyborgbear::Error_TypeMismatch;
+		}
+	}
+	return retval;
 }
 
-inline bool toBool(JsonObjIteratorVal v) {
-	return v.toBool();
+template<typename T>
+inline cyborgbear::Error readVal(T v, bool &val) {
+	int retval = cyborgbear::Error_Ok;
+	if (cyborgbear::isBool(v)) {
+		val = v.toBool();
+	} else {
+		if (cyborgbear::isNull(v)) {
+			retval |= cyborgbear::Error_MissingField;
+		} else {
+			retval |= cyborgbear::Error_TypeMismatch;
+		}
+	}
+	return retval;
 }
 
-inline string toString(JsonObjIteratorVal v) {
-	return v.toString();
+template<typename T>
+inline cyborgbear::Error readVal(T v, string &val) {
+	int retval = cyborgbear::Error_Ok;
+	if (cyborgbear::isString(v)) {
+		val = v.toString();
+	} else {
+		if (cyborgbear::isNull(v)) {
+			retval |= cyborgbear::Error_MissingField;
+		} else {
+			retval |= cyborgbear::Error_TypeMismatch;
+		}
+	}
+	return retval;
 }
 
-inline JsonArrayOut toArray(JsonObjIteratorVal v) {
-	return v.toArray();
+inline int toArray(T v, JsonArrayOut &val) {
+	val = v.toArray();
+	return 0;
 }
 
-inline JsonObjOut toObj(JsonObjIteratorVal v) {
-	return v.toObject();
-}
-
-//from JsonVal
-inline int toInt(JsonVal v) {
-	return (int) v.toDouble();
-}
-
-inline double toDouble(JsonVal v) {
-	return v.toDouble();
-}
-
-inline bool toBool(JsonVal v) {
-	return v.toBool();
-}
-
-inline string toString(JsonVal v) {
-	return v.toString();
-}
-
-inline JsonArrayOut toArray(JsonVal v) {
-	return v.toArray();
-}
-
-inline JsonObjOut toObj(JsonVal v) {
-	return v.toObject();
+inline int toObj(T v, JsonArrayOut &val) {
+	val = v.toObject();
+	return 0;
 }
 
 
@@ -262,60 +298,39 @@ inline JsonValOut toJsonVal(JsonObj v) {
 }
 
 
-inline bool isNull(JsonObjIteratorVal v) {
+template<typename T>
+inline bool isNull(T v) {
 	return v.isNull();
 }
 
-inline bool isBool(JsonObjIteratorVal v) {
+template<typename T>
+inline bool isBool(T v) {
 	return v.isBool();
 }
 
-inline bool isInt(JsonObjIteratorVal v) {
+template<typename T>
+inline bool isInt(T v) {
 	return v.isDouble();
 }
 
-inline bool isDouble(JsonObjIteratorVal v) {
+template<typename T>
+inline bool isDouble(T v) {
 	return v.isDouble();
 }
 
-inline bool isString(JsonObjIteratorVal v) {
+template<typename T>
+inline bool isString(T v) {
 	return v.isString();
 }
 
-inline bool isArray(JsonObjIteratorVal v) {
+template<typename T>
+inline bool isArray(T v) {
 	return v.isArray();
 }
 
-inline bool isObj(JsonObjIteratorVal v) {
+template<typename T>
+inline bool isObj(T v) {
 	return v.isObject();
-}
-
-inline bool isBool(JsonVal v) {
-	return v.isBool();
-}
-
-inline bool isInt(JsonVal v) {
-	return v.isDouble();
-}
-
-inline bool isDouble(JsonVal v) {
-	return v.isDouble();
-}
-
-inline bool isString(JsonVal v) {
-	return v.isString();
-}
-
-inline bool isArray(JsonVal v) {
-	return v.isArray();
-}
-
-inline bool isObj(JsonVal v) {
-	return v.isObject();
-}
-
-inline bool isNull(JsonVal v) {
-	return v.isNull();
 }
 
 
@@ -437,20 +452,60 @@ inline string write(JsonObj obj, JsonSerializationSettings sttngs) {
 
 //value methods
 
-inline int toInt(JsonVal v) {
-	return (int) json_integer_value(v);
+inline cyborgbear::Error readVal(JsonVal v, int &val) {
+	int retval = cyborgbear::Error_Ok;
+	if (cyborgbear::isInt(v)) {
+		val = (int) json_integer_value(v);
+	} else {
+		if (cyborgbear::isNull(v)) {
+			retval |= cyborgbear::Error_MissingField;
+		} else {
+			retval |= cyborgbear::Error_TypeMismatch;
+		}
+	}
+	return retval;
 }
 
-inline double toDouble(JsonVal v) {
-	return (double) json_real_value(v);
+inline cyborgbear::Error readVal(JsonVal v, double &val) {
+	int retval = cyborgbear::Error_Ok;
+	if (cyborgbear::isDouble(v)) {
+		val = (double) json_real_value(v);
+	} else {
+		if (cyborgbear::isNull(v)) {
+			retval |= cyborgbear::Error_MissingField;
+		} else {
+			retval |= cyborgbear::Error_TypeMismatch;
+		}
+	}
+	return retval;
 }
 
-inline bool toBool(JsonVal v) {
-	return json_is_true(v);
+inline cyborgbear::Error readVal(JsonVal v, bool &val) {
+	int retval = cyborgbear::Error_Ok;
+	if (cyborgbear::isBool(v)) {
+		val = json_is_true(v);
+	} else {
+		if (cyborgbear::isNull(v)) {
+			retval |= cyborgbear::Error_MissingField;
+		} else {
+			retval |= cyborgbear::Error_TypeMismatch;
+		}
+	}
+	return retval;
 }
 
-inline string toString(JsonVal v) {
-	return json_string_value(v);
+inline cyborgbear::Error readVal(JsonVal v, string &val) {
+	int retval = cyborgbear::Error_Ok;
+	if (cyborgbear::isString(v)) {
+		val = json_string_value(v);
+	} else {
+		if (cyborgbear::isNull(v)) {
+			retval |= cyborgbear::Error_MissingField;
+		} else {
+			retval |= cyborgbear::Error_TypeMismatch;
+		}
+	}
+	return retval;
 }
 
 inline JsonArray toArray(JsonVal v) {
@@ -483,31 +538,38 @@ inline JsonVal toJsonVal(JsonArray v) {
 }
 
 
-inline bool isNull(JsonVal v) {
+template<typename T>
+inline bool isNull(T v) {
 	return !v;
 }
 
-inline bool isBool(JsonVal v) {
+template<typename T>
+inline bool isBool(T v) {
 	return json_is_boolean(v);
 }
 
-inline bool isInt(JsonVal v) {
+template<typename T>
+inline bool isInt(T v) {
 	return json_is_integer(v);
 }
 
-inline bool isDouble(JsonVal v) {
+template<typename T>
+inline bool isDouble(T v) {
 	return json_is_real(v);
 }
 
-inline bool isString(JsonVal v) {
+template<typename T>
+inline bool isString(T v) {
 	return json_is_string(v);
 }
 
-inline bool isArray(JsonVal v) {
+template<typename T>
+inline bool isArray(T v) {
 	return json_is_array(v);
 }
 
-inline bool isObj(JsonVal v) {
+template<typename T>
+inline bool isObj(T v) {
 	return json_is_object(v);
 }
 

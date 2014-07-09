@@ -6,7 +6,7 @@
 using namespace models;
 using namespace models::cyborgbear;
 
-string models::cyborgbear::version = "1.1.0";
+string models::cyborgbear::version = "1.1.1";
 
 int Model::readJsonFile(string path) {
 	try {
@@ -128,23 +128,31 @@ bool unknown::isObject() {
 }
 
 bool unknown::toBool() {
-	cyborgbear::JsonValOut out = buildJsonObj();
-	return cyborgbear::toBool(out);
+	cyborgbear::JsonValOut obj = buildJsonObj();
+	bool out;
+	cyborgbear::readVal(obj, out);
+	return out;
 }
 
 int unknown::toInt() {
-	cyborgbear::JsonValOut out = buildJsonObj();
-	return cyborgbear::toInt(out);
+	cyborgbear::JsonValOut obj = buildJsonObj();
+	int out;
+	cyborgbear::readVal(obj, out);
+	return out;
 }
 
 double unknown::toDouble() {
-	cyborgbear::JsonValOut out = buildJsonObj();
-	return cyborgbear::toDouble(out);
+	cyborgbear::JsonValOut obj = buildJsonObj();
+	double out;
+	cyborgbear::readVal(obj, out);
+	return out;
 }
 
 string unknown::toString() {
-	cyborgbear::JsonValOut out = buildJsonObj();
-	return cyborgbear::toString(out);
+	cyborgbear::JsonValOut obj = buildJsonObj();
+	string out;
+	cyborgbear::readVal(obj, out);
+	return out;
 }
 
 void unknown::set(Model *v) {
@@ -244,15 +252,7 @@ cyborgbear::Error Model1::loadJsonObj(cyborgbear::JsonVal in) {
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field1");
 		{
-			if (cyborgbear::isString(obj0)) {
-				this->Field1 = cyborgbear::toString(obj0);
-			} else {
-				if (cyborgbear::isNull(obj0)) {
-					retval |= cyborgbear::Error_MissingField;
-				} else {
-					retval |= cyborgbear::Error_TypeMismatch;
-				}
-			}
+			retval |= cyborgbear::readVal(obj0, this->Field1);
 		}
 	}
 	{
@@ -270,15 +270,7 @@ cyborgbear::Error Model1::loadJsonObj(cyborgbear::JsonVal in) {
 				for (unsigned int i = 0; i < size; i++) {
 					cyborgbear::JsonValOut obj1 = cyborgbear::arrayRead(array0, i);
 					{
-						if (cyborgbear::isInt(obj1)) {
-							this->Field3[i] = cyborgbear::toInt(obj1);
-						} else {
-							if (cyborgbear::isNull(obj1)) {
-								retval |= cyborgbear::Error_MissingField;
-							} else {
-								retval |= cyborgbear::Error_TypeMismatch;
-							}
-						}
+						retval |= cyborgbear::readVal(obj1, this->Field3[i]);
 					}
 				}
 			} else {
@@ -303,15 +295,7 @@ cyborgbear::Error Model1::loadJsonObj(cyborgbear::JsonVal in) {
 							for (unsigned int ii = 0; ii < size; ii++) {
 								cyborgbear::JsonValOut obj2 = cyborgbear::arrayRead(array1, ii);
 								{
-									if (cyborgbear::isString(obj2)) {
-										this->Field4[i][ii] = cyborgbear::toString(obj2);
-									} else {
-										if (cyborgbear::isNull(obj2)) {
-											retval |= cyborgbear::Error_MissingField;
-										} else {
-											retval |= cyborgbear::Error_TypeMismatch;
-										}
-									}
+									retval |= cyborgbear::readVal(obj2, this->Field4[i][ii]);
 								}
 							}
 						} else {
@@ -341,15 +325,7 @@ cyborgbear::Error Model1::loadJsonObj(cyborgbear::JsonVal in) {
 						i = o.c_str();
 					}
 					{
-						if (cyborgbear::isString(obj1)) {
-							this->Field5[i] = cyborgbear::toString(obj1);
-						} else {
-							if (cyborgbear::isNull(obj1)) {
-								retval |= cyborgbear::Error_MissingField;
-							} else {
-								retval |= cyborgbear::Error_TypeMismatch;
-							}
-						}
+						retval |= cyborgbear::readVal(obj1, this->Field5[i]);
 					}
 				}
 			}

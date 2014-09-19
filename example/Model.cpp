@@ -6,7 +6,7 @@
 using namespace models;
 using namespace models::cyborgbear;
 
-string models::cyborgbear::version = "1.1.1";
+string models::cyborgbear::version = "2.0.0-beta1";
 
 int Model::readJsonFile(string path) {
 	try {
@@ -212,27 +212,6 @@ bool unknown::operator!=(const unknown &o) const {
 	return m_type != o.m_type || m_data != o.m_data;
 }
 
-#ifdef CYBORGBEAR_BOOST_ENABLED
-
-void unknown::fromBoostBinary(string dat) {
-	std::stringstream in(dat);
-	boost::archive::binary_iarchive ia(in);
-	ia >> *this;
-}
-
-string unknown::toBoostBinary() {
-	std::stringstream out;
-	{
-		boost::archive::binary_oarchive oa(out);
-		oa << *this;
-	}
-	string str;
-	while (out.good())
-		str += out.get();
-	return str;
-}
-#endif
-
 
 #include "string.h"
 #include "Model.hpp"
@@ -263,50 +242,11 @@ cyborgbear::Error Model1::loadJsonObj(cyborgbear::JsonVal in) {
 	}
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field3");
-		if (!cyborgbear::isNull(obj0)) {
-			if (cyborgbear::isArray(obj0)) {
-				cyborgbear::JsonArrayOut array0 = cyborgbear::toArray(obj0);
-				unsigned int size = cyborgbear::arraySize(array0);
-				for (unsigned int i = 0; i < size; i++) {
-					cyborgbear::JsonValOut obj1 = cyborgbear::arrayRead(array0, i);
-					{
-						retval |= cyborgbear::readVal(obj1, this->Field3[i]);
-					}
-				}
-			} else {
-				retval |= cyborgbear::Error_TypeMismatch;
-			}
-		}
+		retval |= cyborgbear::readVal(obj0, this->Field3);
 	}
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field4");
-		if (!cyborgbear::isNull(obj0)) {
-			if (cyborgbear::isArray(obj0)) {
-				cyborgbear::JsonArrayOut array0 = cyborgbear::toArray(obj0);
-				unsigned int size = cyborgbear::arraySize(array0);
-				this->Field4.resize(size);
-				for (unsigned int i = 0; i < size; i++) {
-					cyborgbear::JsonValOut obj1 = cyborgbear::arrayRead(array0, i);
-					if (!cyborgbear::isNull(obj1)) {
-						if (cyborgbear::isArray(obj1)) {
-							cyborgbear::JsonArrayOut array1 = cyborgbear::toArray(obj1);
-							unsigned int size = cyborgbear::arraySize(array1);
-							this->Field4[i].resize(size);
-							for (unsigned int ii = 0; ii < size; ii++) {
-								cyborgbear::JsonValOut obj2 = cyborgbear::arrayRead(array1, ii);
-								{
-									retval |= cyborgbear::readVal(obj2, this->Field4[i][ii]);
-								}
-							}
-						} else {
-							retval |= cyborgbear::Error_TypeMismatch;
-						}
-					}
-				}
-			} else {
-				retval |= cyborgbear::Error_TypeMismatch;
-			}
-		}
+		retval |= cyborgbear::readVal(obj0, this->Field4);
 	}
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field5");
@@ -410,28 +350,3 @@ bool Model1::operator!=(const Model1 &o) const {
 	return false;
 }
 
-
-namespace models {
-
-#ifdef CYBORGBEAR_BOOST_ENABLED
-void Model1::fromBoostBinary(string dat) {
-	std::stringstream in(dat);
-	boost::archive::binary_iarchive ia(in);
-	ia >> *this;
-}
-
-string Model1::toBoostBinary() {
-	std::stringstream out;
-	{
-		boost::archive::binary_oarchive oa(out);
-		oa << *this;
-	}
-
-	string str;
-	while (out.good())
-		str += out.get();
-
-	return str;
-}
-#endif
-}

@@ -6,7 +6,6 @@
 #include <sstream>
 
 #define CYBORGBEAR_USING_JANSSON
-#define CYBORGBEAR_BOOST_ENABLED
 
 
 #ifdef CYBORGBEAR_USING_QT
@@ -24,14 +23,6 @@
 #include <jansson.h>
 #endif
 
-#ifdef CYBORGBEAR_BOOST_ENABLED
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#endif
-
 namespace models {
 
 namespace cyborgbear {
@@ -42,6 +33,7 @@ const Error Error_TypeMismatch = 1;
 const Error Error_MissingField = 2;
 const Error Error_CouldNotAccessFile = 4;
 const Error Error_GenericParsingError = 8;
+const Error Error_ArrayOverflow = 16;
 
 enum JsonSerializationSettings {
 	Compact = 0,
@@ -54,6 +46,38 @@ enum Type {
 	Double,
 	String,
 	Object
+};
+
+template<typename T, long long len>
+class Array {
+	protected:
+		T data[len];
+
+	public:
+		T &operator[](long long idx) {
+			return data[idx];
+		}
+
+		long long size() const {
+			return len;
+		}
+
+		bool operator==(const Array<T, len> &other) const {
+			for (int i = 0; i < size(); i++) {
+				if (data[i] != other.data[i]) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		bool operator!=(const Array<T, len> &other) const {
+			return !(*this == other);
+		}
+
+		template<class Archive>
+		void serialize(Archive &ar, const unsigned int) {
+		}
 };
 
 #ifdef CYBORGBEAR_USING_QT
@@ -102,20 +126,6 @@ std::string toStdString(string str);
 
 
 JsonObjOut read(string json);
-
-cyborgbear::Error readVal(JsonVal, int&);
-cyborgbear::Error readVal(JsonVal, double&);
-cyborgbear::Error readVal(JsonVal, bool&);
-cyborgbear::Error readVal(JsonVal, string&);
-JsonArrayOut toArray(JsonVal);
-JsonObjOut toObj(JsonVal);
-
-JsonValOut toJsonVal(int);
-JsonValOut toJsonVal(double);
-JsonValOut toJsonVal(bool);
-JsonValOut toJsonVal(string);
-JsonValOut toJsonVal(JsonArray);
-JsonValOut toJsonVal(JsonObj);
 
 
 //value methods
@@ -169,6 +179,70 @@ void objSet(JsonObj, string, JsonVal);
 void objSet(JsonObj, string, JsonArray);
 
 JsonValOut objRead(JsonObj, string);
+
+
+JsonArrayOut toArray(JsonVal);
+JsonObjOut toObj(JsonVal);
+
+JsonValOut toJsonVal(int);
+JsonValOut toJsonVal(double);
+JsonValOut toJsonVal(bool);
+JsonValOut toJsonVal(string);
+JsonValOut toJsonVal(JsonArray);
+JsonValOut toJsonVal(JsonObj);
+
+
+cyborgbear::Error readVal(JsonVal, int&);
+cyborgbear::Error readVal(JsonVal, double&);
+cyborgbear::Error readVal(JsonVal, bool&);
+cyborgbear::Error readVal(JsonVal, string&);
+
+template<typename T>
+inline cyborgbear::Error readVal(JsonValOut v, T &val) {
+	cyborgbear::Error retval = cyborgbear::Error_Ok;
+	if (!cyborgbear::isNull(v)) {
+		if (cyborgbear::isArray(v)) {
+			cyborgbear::JsonArrayOut array = cyborgbear::toArray(v);
+			unsigned int size = cyborgbear::arraySize(array);
+			if (size > val.size()) {
+				size = val.size();
+				retval |= cyborgbear::Error_ArrayOverflow;
+			}
+			for (unsigned int i = 0; i < size; i++) {
+				retval |= cyborgbear::readVal(cyborgbear::arrayRead(array, i), val[i]);
+			}
+		} else {
+			retval |= cyborgbear::Error_TypeMismatch;
+		}
+	} else {
+		retval |= cyborgbear::Error_MissingField;
+	}
+	return retval;
+}
+
+template<typename T>
+#ifdef CYBORGBEAR_USING_QT
+inline cyborgbear::Error readVal(JsonValOut v, QVector<T> &val) {
+#else
+inline cyborgbear::Error readVal(JsonValOut v, std::vector<T> &val) {
+#endif
+	cyborgbear::Error retval = cyborgbear::Error_Ok;
+	if (!cyborgbear::isNull(v)) {
+		if (cyborgbear::isArray(v)) {
+			cyborgbear::JsonArrayOut array = cyborgbear::toArray(v);
+			unsigned int size = cyborgbear::arraySize(array);
+			val.resize(size);
+			for (unsigned int i = 0; i < size; i++) {
+				retval |= cyborgbear::readVal(cyborgbear::arrayRead(array, i), val[i]);
+			}
+		} else {
+			retval |= cyborgbear::Error_TypeMismatch;
+		}
+	} else {
+		retval |= cyborgbear::Error_MissingField;
+	}
+	return retval;
+}
 
 
 JsonObjIterator jsonObjIterator(JsonObj);
@@ -661,18 +735,6 @@ class Model {
 		 */
 		string toJson(cyborgbear::JsonSerializationSettings sttngs = Compact);
 
-#ifdef CYBORGBEAR_BOOST_ENABLED
-		/**
-		 * Returns Boost serialization version of this object.
-		 */
-		virtual string toBoostBinary() = 0;
-
-		/**
-		 * Loads fields of this Model from the given Boost serialization text.
-		 */
-		virtual void fromBoostBinary(string dat) = 0;
-#endif
-
 #ifdef CYBORGBEAR_USING_QT
 		cyborgbear::Error loadJsonObj(cyborgbear::JsonObjIteratorVal &obj) { return loadJsonObj(obj); };
 #endif
@@ -684,16 +746,6 @@ class Model {
 class unknown: public Model {
 	cyborgbear::string m_data;
 	cyborgbear::Type m_type;
-
-#ifdef CYBORGBEAR_BOOST_ENABLED
-	friend class boost::serialization::access;
-
-	template<class Archive>
-	void serialize(Archive &ar, const unsigned int) {
-		ar & m_type;
-		ar & m_data;
-	}
-#endif
 
 	public:
 		unknown();
@@ -727,18 +779,6 @@ class unknown: public Model {
 
 		bool operator==(const unknown&) const;
 		bool operator!=(const unknown&) const;
-
-#ifdef CYBORGBEAR_BOOST_ENABLED
-		/**
-		 * Returns Boost serialization version of this object.
-		 */
-		string toBoostBinary();
-
-		/**
-		 * Loads fields of this Model from the given Boost serialization text.
-		 */
-		void fromBoostBinary(string dat);
-#endif
 };
 
 };
@@ -765,15 +805,9 @@ class Model1: public cyborgbear::Model {
 		bool operator==(const Model1&) const;
 
 		bool operator!=(const Model1&) const;
-#ifdef CYBORGBEAR_BOOST_ENABLED
-
-		virtual string toBoostBinary();
-
-		virtual void fromBoostBinary(string dat);
-#endif
 		string Field1;
 		cyborgbear::unknown Field2;
-		int Field3[4];
+		cyborgbear::Array<int, 4> Field3;
 		std::vector< std::vector< string > > Field4;
 		std::map< string, string > Field5;
 };
@@ -781,25 +815,4 @@ class Model1: public cyborgbear::Model {
 }
 
 
-#ifdef CYBORGBEAR_BOOST_ENABLED
-#include <boost/serialization/list.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-
-namespace boost {
-namespace serialization {
-
-template<class Archive>
-void serialize(Archive &ar, models::Model1 &model, const unsigned int) {
-	ar & model.Field1;
-	ar & model.Field2;
-	ar & model.Field3;
-	ar & model.Field4;
-	ar & model.Field5;
-}
-
-}
-}
-#endif
 #endif

@@ -1,5 +1,5 @@
 /*
-   Copyright 2013 gtalent2@gmail.com
+   Copyright 2013 - 2014 gtalent2@gmail.com
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -15,4 +15,4 @@
 */
 package main
 
-const cyborgbear_version = "1.1.1"
+const cyborgbear_version = "2.0.0-beta1"

@@ -1,5 +1,5 @@
 /*
-   Copyright 2013 gtalent2@gmail.com
+   Copyright 2013 - 2014 gtalent2@gmail.com
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ func main() {
 	in := flag.String("i", "", "The model file to generate JSON serialization code for")
 	namespace := flag.String("n", "models", "Namespace for the models")
 	outputType := flag.String("t", "cpp-jansson", "Output type(cpp-jansson, cpp-qt, go)")
-	boost := flag.Bool("cpp-boost", false, "Boost serialization enabled")
 	lowerCase := flag.Bool("lc", false, "Make variable names lowercase in output models")
 	version := flag.Bool("v", false, "version")
 	flag.Parse()
@@ -37,10 +36,10 @@ func main() {
 		fmt.Println("cyborgbear version " + cyborgbear_version)
 		return
 	}
-	parseFile(*in, *out, *namespace, *outputType, *boost, *lowerCase)
+	parseFile(*in, *out, *namespace, *outputType, *lowerCase)
 }
 
-func parseFile(path, outFile, namespace, outputType string, boost, lowerCase bool) {
+func parseFile(path, outFile, namespace, outputType string, lowerCase bool) {
 	ss, err := ioutil.ReadFile(path)
 	if err != nil {
 		fmt.Println("Could not find or open specified model file")
@@ -61,7 +60,7 @@ func parseFile(path, outFile, namespace, outputType string, boost, lowerCase boo
 	var out Out
 	switch ioutputType {
 	case USING_JANSSON, USING_QT:
-		out = NewCOut(namespace, ioutputType, boost, lowerCase)
+		out = NewCOut(namespace, ioutputType, lowerCase)
 	case USING_GO:
 		out = NewGo(namespace)
 	}

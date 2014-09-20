@@ -326,13 +326,7 @@ func (me *Cpp) buildArrayWriter(code *CppCode, t, v, sub string, depth int, inde
 		}
 	} else {
 		switch t {
-		case "int":
-			code.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + sub + ");")
-		case "double":
-			code.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + sub + ");")
-		case "bool":
-			code.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + sub + ");")
-		case "string":
+		case "int", "double", "bool", "string":
 			code.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + sub + ");")
 		default:
 			code.Insert("cyborgbear::JsonValOut obj0 = this->" + v + sub + ".buildJsonObj();")
@@ -351,13 +345,7 @@ func (me *Cpp) buildWriter(v, jsonV, t string, index []parser.VarType) string {
 		out.Insert("cyborgbear::decref(out" + strconv.Itoa(len(index)) + ");")
 	} else {
 		switch t {
-		case "int":
-			out.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + ");")
-		case "double":
-			out.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + ");")
-		case "bool":
-			out.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + ");")
-		case "string":
+		case "int", "double", "bool", "string":
 			out.Insert("cyborgbear::JsonValOut out0 = cyborgbear::toJsonVal(this->" + v + ");")
 		default:
 			out.Insert("cyborgbear::JsonValOut obj0 = this->" + v + ".buildJsonObj();")

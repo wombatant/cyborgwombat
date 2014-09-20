@@ -265,6 +265,11 @@ JsonValOut toJsonVal(JsonArray);
 JsonValOut toJsonVal(JsonObj);
 
 
+cyborgbear::Error readVal(JsonVal, int&);
+cyborgbear::Error readVal(JsonVal, double&);
+cyborgbear::Error readVal(JsonVal, bool&);
+cyborgbear::Error readVal(JsonVal, string&);
+
 template<typename T, long long len>
 inline cyborgbear::Error readVal(JsonValOut v, Array<T, len> &val) {
 	cyborgbear::Error retval = cyborgbear::Error_Ok;

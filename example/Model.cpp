@@ -230,15 +230,11 @@ cyborgbear::Error Model1::loadJsonObj(cyborgbear::JsonVal in) {
 
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field1");
-		{
-			retval |= cyborgbear::readVal(obj0, this->Field1);
-		}
+		retval |= cyborgbear::readVal(obj0, this->Field1);
 	}
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field2");
-		{
-			retval |= this->Field2.loadJsonObj(obj0);
-		}
+		retval |= cyborgbear::readVal(obj0, this->Field2);
 	}
 	{
 		cyborgbear::JsonValOut obj0 = cyborgbear::objRead(inObj, "Field3");
@@ -264,9 +260,7 @@ cyborgbear::Error Model1::loadJsonObj(cyborgbear::JsonVal in) {
 						s >> o;
 						i = o.c_str();
 					}
-					{
-						retval |= cyborgbear::readVal(obj1, this->Field5[i]);
-					}
+					retval |= cyborgbear::readVal(obj1, this->Field5[i]);
 				}
 			}
 		}

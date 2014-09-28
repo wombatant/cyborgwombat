@@ -1,5 +1,5 @@
 /*
-   Copyright 2013 gtalent2@gmail.com
+   Copyright 2013 - 2014 gtalent2@gmail.com
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ type parseFileArgs struct {
 	namespace  string
 	outputType string
 	include    string
-	boost      bool
 	lowerCase  bool
 	version    bool
 }
@@ -41,7 +40,6 @@ func main() {
 	flag.StringVar(&args.namespace , "n", "models", "Namespace for the models")
 	flag.StringVar(&args.outputType, "t", "cpp-jansson", "Output type(cpp-jansson, cpp-qt, go)")
 	flag.StringVar(&args.include   , "include", "", "header file to include")
-	flag.BoolVar(&args.boost    , "cpp-boost", false, "Boost serialization enabled")
 	flag.BoolVar(&args.lowerCase, "lc", false, "Make variable names lowercase in output models")
 	flag.BoolVar(&args.version  , "v", false, "version")
 	flag.Parse()
@@ -74,7 +72,7 @@ func parseFile(args parseFileArgs) {
 	var out Out
 	switch ioutputType {
 	case USING_JANSSON, USING_QT:
-		out = NewCOut(args.namespace, ioutputType, args.boost, args.lowerCase)
+		out = NewCOut(args.namespace, ioutputType, args.lowerCase)
 	case USING_GO:
 		out = NewGo(args.namespace)
 	}

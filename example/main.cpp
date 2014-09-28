@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 gtalent2@gmail.com
+ * Copyright 2013 - 2014 gtalent2@gmail.com
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,6 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
-#ifdef CYBORGBEAR_BOOST_ENABLED
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#endif
 #include "Model.hpp"
 
 using namespace std;
@@ -33,16 +29,6 @@ void testJson(Model1 &orig) {
 	cout << "JSON Test:  " << (copy.toJson().compare(orig.toJson()) == 0 ? "Pass" : "Fail") << endl;
 }
 
-void testBoost(Model1 &orig) {
-#ifdef CYBORGBEAR_BOOST_ENABLED
-	Model1 copy;
-
-	copy.fromBoostBinary(orig.toBoostBinary());
-
-	cout << "Boost Test: " << (copy.toJson().compare(orig.toJson()) == 0 ? "Pass" : "Fail") << endl;
-#endif
-}
-
 int main() {
 	cout << "Using cyborgbear version: " << models::cyborgbear::version << endl;
 	Model1 mod;
@@ -52,6 +38,5 @@ int main() {
 	cout << mod.toJson(cyborgbear::Readable) << endl;
 
 	testJson(mod);
-	testBoost(mod);
 	return 0;
 }

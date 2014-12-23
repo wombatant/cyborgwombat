@@ -130,8 +130,6 @@ func (me *Cpp) addVar(v string, index []parser.VarType) {
 	t := me.typeMap(index[len(index)-1].Type)
 	index = index[:len(index)-1]
 	me.hpp += "\t\t" + me.buildVar(v, t, index) + "\n"
-	var reader CppCode
-	reader.tabs += "\t"
 	me.constructor += me.buildConstructor(v, t, index)
 	me.reader += me.buildReader(v)
 	me.writer += me.buildWriter(v)

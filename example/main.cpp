@@ -19,24 +19,24 @@
 #include "Model.hpp"
 
 using namespace std;
-using namespace models;
+//using namespace models;
 
-void testJson(Model1 &orig) {
-	Model1 copy;
-
-	copy.fromJson(orig.toJson());
-
-	cout << "JSON Test:  " << (copy.toJson().compare(orig.toJson()) == 0 ? "Pass" : "Fail") << endl;
-}
+//void testJson(Model1 &orig) {
+//	Model1 copy;
+//
+//	copy.fromJson(orig.toJson());
+//
+//	cout << "JSON Test:  " << (copy.toJson().compare(orig.toJson()) == 0 ? "Pass" : "Fail") << endl;
+//}
 
 int main() {
-	cout << "Using cyborgbear version: " << models::cyborgbear::version << endl;
-	Model1 mod;
-	mod.fromJson("{\"Field1\": \"Ni!\", \"Field2\": \"asdf\", \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]], \"Field5\": {\"Narf\": \"Ni\"}}");
-	mod.Field1 = "Narf!";
+	//cout << "Using cyborgbear version: " << models::cyborgbear::version << endl;
+	//Model1 mod;
+	//mod.fromJson("{\"Field1\": \"Ni!\", \"Field2\": \"asdf\", \"Field3\": [4, 2], \"Field4\": [[\"Narf!\", \"Narf!\"], [\"Narf!\", \"Narf!\"]], \"Field5\": {\"Narf\": \"Ni\"}}");
+	//mod.Field1 = "Narf!";
 
-	cout << mod.toJson(cyborgbear::Readable) << endl;
+	//cout << mod.toJson(cyborgbear::Readable) << endl;
 
-	testJson(mod);
+	//testJson(mod);
 	return 0;
 }

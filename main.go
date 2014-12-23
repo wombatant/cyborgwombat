@@ -35,13 +35,13 @@ type parseFileArgs struct {
 
 func main() {
 	var args parseFileArgs
-	flag.StringVar(&args.out       , "o", "stdout", "File or file set(languages with header files) to write the output to")
-	flag.StringVar(&args.in        , "i", "", "The model file to generate JSON serialization code for")
-	flag.StringVar(&args.namespace , "n", "models", "Namespace for the models")
-	flag.StringVar(&args.outputType, "t", "cpp-jansson", "Output type(cpp-jansson, cpp-qt, go)")
-	flag.StringVar(&args.include   , "include", "", "header file to include")
+	flag.StringVar(&args.out, "o", "stdout", "File or file set(languages with header files) to write the output to")
+	flag.StringVar(&args.in, "i", "", "The model file to generate JSON serialization code for")
+	flag.StringVar(&args.namespace, "n", "models", "Namespace for the models")
+	flag.StringVar(&args.outputType, "t", "cpp-jansson", "Output type(cpp-jansson, cpp-qt)")
+	flag.StringVar(&args.include, "include", "", "header file to include")
 	flag.BoolVar(&args.lowerCase, "lc", false, "Make variable names lowercase in output models")
-	flag.BoolVar(&args.version  , "v", false, "version")
+	flag.BoolVar(&args.version, "v", false, "version")
 	flag.Parse()
 
 	if args.version {
@@ -65,16 +65,12 @@ func parseFile(args parseFileArgs) {
 		ioutputType = USING_JANSSON
 	case "cpp-qt":
 		ioutputType = USING_QT
-	case "go", "Go":
-		ioutputType = USING_GO
 	}
 
 	var out Out
 	switch ioutputType {
 	case USING_JANSSON, USING_QT:
 		out = NewCOut(args.namespace, ioutputType, args.lowerCase)
-	case USING_GO:
-		out = NewGo(args.namespace)
 	}
 
 	models, err := parser.Parse(input)

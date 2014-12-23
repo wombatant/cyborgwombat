@@ -1,8 +1,8 @@
 build:
-	go build -o cyborgbear
+	go build -o cyborgwombat
 install: build
 	mkdir -p $(GOPATH)/bin
-	cp cyborgbear $(GOPATH)/bin
+	cp cyborgwombat $(GOPATH)/bin
 fmt:
 	make -C parser
 	go fmt

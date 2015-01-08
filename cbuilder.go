@@ -1,17 +1,9 @@
 /*
-   Copyright 2013 - 2014 gtalent2@gmail.com
+   Copyright 2013-2014 gtalent2@gmail.com
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+   This Source Code Form is subject to the terms of the Mozilla Public
+   License, v. 2.0. If a copy of the MPL was not distributed with this
+   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 package main
 
@@ -61,14 +53,12 @@ func (me *Cpp) writeFile(outFile string) error {
 
 func (me *Cpp) typeMap(t string) string {
 	switch t {
-	case "float", "float32", "float64", "double":
+	case "float", "float32", "float64":
 		return "double"
-	case "int", "bool", "string":
-		return t
 	case "unknown":
 		return "unknown"
 	default:
-		return me.namespace + "::" + t
+		return t
 	}
 	return t
 }
@@ -138,11 +128,13 @@ func (me *Cpp) addVar(v string, index []parser.VarType) {
 }
 
 func (me *Cpp) addClass(v string) {
-	me.hpp += "\nclass " + v + " {\n"
+	me.hpp += "\nclass " + v + ": public Model {\n"
 	me.hpp += "\n\tpublic:\n"
 	me.hpp += "\n\t\t" + v + "();\n"
 	me.hpp += "\n\t\tbool operator==(const " + v + "&) const;\n"
 	me.hpp += "\n\t\tbool operator!=(const " + v + "&) const;\n"
+	me.hpp += "\n\t\tstring toJson();\n"
+	me.hpp += "\n\t\tError fromJson(string);\n"
 
 	me.constructor += v + "::" + v + "() {\n"
 	me.reader += `inline Error fromJson(` + v + ` *model, json_t *jo) {
@@ -172,6 +164,8 @@ func (me *Cpp) header(fileName string) string {
 #ifndef ` + n + `
 #define ` + n + `
 
+#include "ptr.hpp"
+#include "unknown.hpp"
 #include "json_read.hpp"
 #include "json_write.hpp"
 
@@ -186,7 +180,6 @@ func (me *Cpp) body(headername string) string {
 	include := ""
 	if headername != "" {
 		include += `//Generated Code
-#include "string.h"
 #include "` + headername + `"
 
 `
